@@ -1,13 +1,9 @@
 # STL
 from datetime import datetime, timedelta
 
-# PDM
-from skyfield import almanac
-
 # LOCAL
 from tenpo.phase_utils import (
     datetime_to_emoji,
-    phase_at_datetime,
     date_in_major_phase,
     datetime_to_degrees,
 )
@@ -30,5 +26,4 @@ def test_daily():
                 75 <= degree <= 110 or 255 <= degree <= 300
             ), "emoji %s appeared at %s" % (emoji, degree)
 
-        print(date, emoji, phase_state)
         date += delta
