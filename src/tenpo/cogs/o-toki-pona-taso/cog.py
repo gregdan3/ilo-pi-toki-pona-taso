@@ -66,9 +66,6 @@ class CogOTokiPonaTaso(Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    """ by making the two parallel it's kinda chunky, you can get reacted twice
-    """
-
     # @commands.Cog.listener("on_message")
     # async def o_toki_pona_taso(self, message: Message):
     #     # fetch user configuration
@@ -76,16 +73,22 @@ class CogOTokiPonaTaso(Cog):
 
     @commands.Cog.listener("on_message")
     async def tenpo_la_o_toki_pona_taso(self, message: Message):
-        # TODO: exclude bots, but not pluralkit? they share a per-server id from the webhook
-        # TODO: combine this logic with user rules so we don't double kasi? hmm
-        # or just accept double kasi
+        # TODO: combine with user rules so we don't double kasi? hmm or just accept double kasi
         guild = message.guild
         if not guild:
-            return  # implies a messageable guild channel; pyright can't know this, so assert later
-        if not is_major_phase():
             return
+
         channel = message.channel
         assert not isinstance(channel, DMChannel)
+        # TODO: stronger assert? see PartialMessageable
+
+        if message.author.bot:
+            # TODO: exclude bots, but not pluralkit? they share a per-server id from the webhook
+            # https://pluralkit.me/api/endpoints/#get-proxied-message-information
+            return
+
+        if not is_major_phase():
+            return
 
         if not await in_checked_channel_guild(
             channel.id,
@@ -93,8 +96,10 @@ class CogOTokiPonaTaso(Cog):
             guild.id,
         ):
             return
+
         if is_toki_pona(message.content):
             return
+
         await message.add_reaction(get_emoji())  # TODO: user/guild choose delete/react
 
 
