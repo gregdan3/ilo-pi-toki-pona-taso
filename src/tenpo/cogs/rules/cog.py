@@ -2,10 +2,11 @@
 import logging
 
 # PDM
-from discord import Cog, CategoryChannel, SlashCommandGroup, option
+from discord import Cog, ForumChannel, CategoryChannel, SlashCommandGroup, option
 from __main__ import TenpoBot
 from discord.ext import commands
 from discord.channel import TextChannel
+from discord.types.channel import Channel
 from discord.commands.context import ApplicationContext
 
 # LOCAL
@@ -80,7 +81,10 @@ class CogRules(Cog):
     )
     @commands.has_permissions(administrator=True)
     async def guild_add_channel(
-        self, ctx: ApplicationContext, tomo: TextChannel, ala: bool = False
+        self,
+        ctx: ApplicationContext,
+        tomo: TextChannel | ForumChannel,
+        ala: bool = False,
     ):
         guild = ctx.guild
         assert guild
@@ -93,7 +97,9 @@ class CogRules(Cog):
     @guild_channel.command(name="weka", description="o weka e toki pona taso tan tomo")
     @option(name="tomo", description="tomo ni li ken toki pona ala")
     @commands.has_permissions(administrator=True)
-    async def guild_remove_channel(self, ctx: ApplicationContext, tomo: TextChannel):
+    async def guild_remove_channel(
+        self, ctx: ApplicationContext, tomo: TextChannel | ForumChannel
+    ):
         guild = ctx.guild
         assert guild
         await remove_rule(tomo.id, Container.CHANNEL, guild.id, Owner.GUILD)
