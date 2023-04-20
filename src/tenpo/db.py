@@ -152,8 +152,12 @@ class TenpoDB:
         await self.s.close()
         await self.engine.dispose()
 
+    async def insert_guild(self, guild_id: int, config: Optional[dict] = None):
+        new_guild = Guilds(id=guild_id, config=config)
+        self.s.add(new_guild)
+        await self.s.commit()
+
     async def get_guild_config(self, guild_id: int) -> Optional[dict]:
-        raise NotImplementedError
         stmt = select(Guilds.config).where(Guilds.id == guild_id)
         result = await self.s.execute(stmt)
         config = result.scalar_one_or_none()
@@ -162,9 +166,8 @@ class TenpoDB:
     async def get_guild_config_item(
         self, guild_id: int, key: str
     ) -> Optional[Union[bool, str, int]]:
-        raise NotImplementedError
         config = await self.get_guild_config(guild_id)
-        return config.get(config_key, None) if config else None
+        return config.get(key, None) if config else None
 
     async def get_user_config(self, user_id: int) -> Optional[dict]:
         raise NotImplementedError
@@ -365,9 +368,9 @@ class TenpoDB:
             .where(IconsBanners.name == name)
         )
         result = await self.s.execute(stmt)
-        icon_banner = result.scalar_one_or_none()
+        icon_banner_id = result.scalar_one_or_none()
 
-        if not icon_banner:
+        if not icon_banner_id:
             raise ValueError("No icon/banner found with the given name for the guild")
 
-        await self.__set_default_icon_banner(guild_id, icon_banner.id)
+        await self.__set_default_icon_banner(guild_id, icon_banner_id)
