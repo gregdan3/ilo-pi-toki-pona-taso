@@ -10,6 +10,8 @@ Each function is responsible for its own pre-processing.
 # STL
 import re
 import logging
+from typing import List
+from functools import partial
 from collections import OrderedDict
 
 # PDM
@@ -21,10 +23,10 @@ LOG = logging.getLogger("tenpo")
 TOKEN_DELIMITERS = r"\s+|(?=[.?!;:])"
 CONSECUTIVE_DUPLICATES = r"(.)\1+"
 SPOILERS = r"\|\|[^|]+\|\|"
-QUOTES = r'"[^"]+"'
+QUOTES = r'"[^"]+"' + r"|" + r"'[^']+'"
 URLS = r"https?:\/\/\S+"
 EMOTES = r"<a?:\w+:\d+>"
-CLEANERS = [SPOILERS, QUOTES, URLS, EMOTES]
+SENT_CLEANERS = [SPOILERS, QUOTES, URLS, EMOTES]  # TODO: partial-ify
 
 STRICT_REGEX = r"^(?:(?:^[aeiou]|[klmnps][aeiou]|[jt][aeou]|[w][aei])(?:n(?![mn]))?)+$"
 LOOSE_REGEX = r"^(?:[jklmnpstw]?[aeiou]n?)(?:[jklmnpstw][aeiou]n?)*|n$"
@@ -32,29 +34,40 @@ UNIDECODE_REGEX = r""
 
 COMMON_ALLOWABLES = {"msa", "cw"}
 
+TOKEN_FILTERS = [
+    lambda s: s.isalpha(),  # is all alphabetical; removes ""
+    lambda s: (not (s[0].isupper())) or (s.isupper()),  # not a proper noun, or all caps
+    lambda s: s not in COMMON_ALLOWABLES,
+]
+TOKEN_CLEANERS = [
+    # NOTE: ORDER MATTERS
+    lambda s: s.lower(),  # lowercase
+    partial(re.sub, CONSECUTIVE_DUPLICATES, r"\1"),  # rm consecutive duplicates
+]
 
-def tokenize(text: str) -> list[str]:
-    toks_punct = re.split(TOKEN_DELIMITERS, text)
-    toks_punct = [tok for tok in toks_punct if tok and tok.isalpha()]
+
+def tokenize(s: str) -> list[str]:
+    toks_punct = re.split(TOKEN_DELIMITERS, s)
     return toks_punct
 
 
+def filter_tokens(tokens: List[str]):
+    for filter in TOKEN_FILTERS:
+        tokens = [token for token in tokens if filter(token)]
+    return tokens
+
+
 def clean_message(s: str) -> str:
-    """Strip consecutive duplicates, URLs, proper names, other strings not worth checking for invalidity
+    """Strip consecutive duplicates, URLs, other strings not worth checking for invalidity
     NOTE: stripping consecutive duplicates interacts badly"""
-    s = s.lower()
-    for cleaner in CLEANERS:
+    for cleaner in SENT_CLEANERS:
         s = re.sub(cleaner, " ", s)
     return s
 
 
-def rm_dupes(s: str) -> str:
-    """Remove consecutive duplicates from a string"""
-    return re.sub(CONSECUTIVE_DUPLICATES, r"\1", s)
-
-
 def clean_token(s: str, unidecode_safe=False) -> str:
-    s = rm_dupes(s)
+    for cleaner in TOKEN_CLEANERS:
+        s = cleaner(s)
     return s
 
 
@@ -82,7 +95,9 @@ def _is_toki_pona_ascii(s: str, p: float) -> bool:
     """Assert string matches a loose regex, matches [(C)V(n)]CV(n) including wuwojiti"""
     s = clean_message(s)
     tokens = tokenize(s)
+    tokens = filter_tokens(tokens)
     nimi_pona = len(tokens)
+    # NOTE: could get this from pre-filter tokens; would be more lenient but less accurate (double spaces produce empty strings)
     nimi_ike = 0
     for token in tokens:
         token = clean_token(token)
