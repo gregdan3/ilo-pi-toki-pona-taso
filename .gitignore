@@ -3,3 +3,5 @@
 __pypackages__
 __pycache__
 *.egg-info
+.env
+userdata/*

@@ -1,0 +1,18 @@
+---
+version: "3.8"
+services:
+  bot:
+    build:
+      context: "."
+      dockerfile: "Dockerfile"
+    container_name: "tenpo"
+    environment:
+      DISCORD_TOKEN: "${DISCORD_TOKEN}"
+      LOG_LEVEL: "${LOG_LEVEL}"
+      DEBUG_GUILDS: "${DEBUG_GUILDS}"
+      DB_FILE: "${DB_FILE}"
+    volumes:
+      - ./userdata/:/project/userdata/
+    deploy:
+      restart_policy:
+        condition: "unless-stopped"
