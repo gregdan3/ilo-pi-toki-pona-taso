@@ -1,5 +1,5 @@
 FROM python:3.11-slim AS builder
-RUN python -m pip install pdm==2.4.8
+RUN python -m pip install pdm==2.5.3
 RUN pdm config python.use_venv false
 
 COPY pyproject.toml pdm.lock /project/

@@ -1,5 +1,5 @@
 *.bsp
-.pdm.toml
+.pdm-python
 __pypackages__
 __pycache__
 *.egg-info
