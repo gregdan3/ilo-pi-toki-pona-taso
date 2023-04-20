@@ -33,7 +33,7 @@ DB_FILE = load_envvar("DB_FILE")
 LOG_LEVEL = load_envvar("LOG_LEVEL", "WARNING")
 LOG_LEVEL_INT = getattr(logging, LOG_LEVEL.upper())
 
-DEBUG_GUILDS = load_envvar("DEBUG_GUILDS", None)
+DEBUG_GUILDS = load_envvar("DEBUG_GUILDS", "")
 if DEBUG_GUILDS:
     DEBUG_GUILDS = [int(n) for n in DEBUG_GUILDS.split(",") if n and n.isdigit()]
 
