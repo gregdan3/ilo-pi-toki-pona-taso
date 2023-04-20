@@ -42,6 +42,7 @@ def tokenize(text: str) -> list[str]:
 def clean_message(s: str) -> str:
     """Strip consecutive duplicates, URLs, proper names, other strings not worth checking for invalidity
     NOTE: stripping consecutive duplicates interacts badly"""
+    s = s.lower()
     for cleaner in CLEANERS:
         s = re.sub(cleaner, " ", s)
     return s
