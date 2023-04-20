@@ -1,50 +1,69 @@
 # STL
 import os
+import asyncio
 import logging
+from typing import Any
 
 # PDM
 from dotenv import load_dotenv
 from discord import Intents
 from discord.ext import commands
-from ilo.log_config import configure_logger
 
-LOG = logging.getLogger("ilo")
+# LOCAL
+from tenpo.db import TenpoDB
+from tenpo.log_utils import configure_logger
 
-# from discord import Intents
+LOG = logging.getLogger("tenpo")
+
+load_dotenv()
 
 
-TOKEN = os.getenv("DISCORD_TOKEN")
-if not TOKEN:
-    load_dotenv()
-    TOKEN = os.getenv("DISCORD_TOKEN")
-if not TOKEN:
-    raise EnvironmentError("No discord token found in the environment!")
+def load_envvar(envvar: str, default: Any = None) -> str:
+    val = os.getenv(envvar)
+    if not val:
+        if default is not None:
+            return default
+        else:
+            raise EnvironmentError(f"No {envvar} found in environment!")
+    return val
 
-LOG_LEVEL = os.getenv("LOG_LEVEL")
-if not LOG_LEVEL:
-    LOG_LEVEL = "INFO"
 
-TEST_SERVERS = os.getenv("TEST_SERVERS")
-if TEST_SERVERS:
-    TEST_SERVERS = TEST_SERVERS.split(",")
-
+TOKEN = load_envvar("DISCORD_TOKEN")
+DB_FILE = load_envvar("DB_FILE")
+LOG_LEVEL = load_envvar("LOG_LEVEL", "WARNING")
 LOG_LEVEL_INT = getattr(logging, LOG_LEVEL.upper())
 
-bot = commands.Bot(
+DEBUG_GUILDS = load_envvar("DEBUG_GUILDS", None)
+if DEBUG_GUILDS:
+    DEBUG_GUILDS = [int(n) for n in DEBUG_GUILDS.split(",") if n and n.isdigit()]
+
+
+class TenpoBot(commands.Bot):
+    def __init__(self, db, *args, **kwargs):
+        self.db: TenpoDB = db  # it's initialized async
+        super().__init__(*args, **kwargs)
+
+
+LOOP = asyncio.new_event_loop()
+DB = asyncio.run(TenpoDB(database_file=DB_FILE))
+BOT = TenpoBot(
+    db=DB,
+    loop=LOOP,
     command_prefix="/",
     intents=Intents.all(),
+    debug_guilds=DEBUG_GUILDS,
 )
 
 
-@bot.event
+@BOT.event
 async def on_ready():
-    for index, guild in enumerate(bot.guilds):
+    for index, guild in enumerate(BOT.guilds):
         print("{}) {}".format(index + 1, guild.name))
 
 
-@bot.event
+@BOT.event
 async def on_reaction_add(reaction, user):
-    if reaction.message.author == bot.user:
+    if reaction.message.author == BOT.user:
         if reaction.emoji == "❌":
             await reaction.message.delete()
 
@@ -52,18 +71,28 @@ async def on_reaction_add(reaction, user):
 def load_extensions():
     cogs_path = os.path.dirname(__file__) + "/cogs/"
     for cogname in sorted(os.listdir(cogs_path), key=len):
+        if cogname == "debug":
+            if DEBUG_GUILDS:
+                LOG.warning("DEBUG_GUILDS set: %s. Loading debug module.", DEBUG_GUILDS)
+            else:
+                LOG.info("Not loading debug module")
+                continue
+
         path = cogs_path + cogname
-        if os.path.isdir(path):
-            if "__init__.py" in os.listdir(path):
-                LOG.info("Loading cog %s", cogname)
-                bot.load_extension(f"ilo.cogs.{cogname}")
+        if not os.path.isdir(path):
+            continue
+        if not ("__init__.py" in os.listdir(path)):
+            continue
+        LOG.info("Loading cog %s", cogname)
+        BOT.load_extension(f"tenpo.cogs.{cogname}")
 
 
-if __name__ == "__main__":
-    configure_logger("ilo", log_level=LOG_LEVEL_INT)
+def main():
+    configure_logger("tenpo", log_level=LOG_LEVEL_INT)
     configure_logger("discord", log_level=logging.WARNING)
     load_extensions()
-    bot.run(TOKEN, reconnect=True)
+    BOT.run(TOKEN, reconnect=True)
+
 
 if __name__ == "__main__":
     main()
