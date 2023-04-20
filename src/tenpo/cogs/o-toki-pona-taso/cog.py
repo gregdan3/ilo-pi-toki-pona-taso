@@ -4,7 +4,8 @@ import logging
 from typing import Optional
 
 # PDM
-from discord import DMChannel, TextChannel, ForumChannel
+import discord
+from discord import Thread, DMChannel, TextChannel, ForumChannel
 from discord.ext import commands
 from discord.message import Message
 from discord.ext.commands import Cog
@@ -82,8 +83,10 @@ class CogOTokiPonaTaso(Cog):
             return
 
         channel = message.channel
-        assert not isinstance(channel, DMChannel)
-        # TODO: stronger assert? see PartialMessageable
+        if isinstance(channel, DMChannel):
+            return
+        if isinstance(channel, Thread):
+            channel = channel.parent
 
         if message.author.bot:
             # TODO: exclude bots, but not pluralkit? they share a per-server id from the webhook
@@ -95,7 +98,7 @@ class CogOTokiPonaTaso(Cog):
 
         if not await in_checked_channel_guild(
             channel.id,
-            channel.category_id,  # TODO: wtf is a PartialMessageable
+            channel.category_id,
             guild.id,
         ):
             return
