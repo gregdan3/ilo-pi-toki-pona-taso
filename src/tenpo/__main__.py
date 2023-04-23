@@ -58,7 +58,7 @@ BOT = TenpoBot(
 @BOT.event
 async def on_ready():
     for index, guild in enumerate(BOT.guilds):
-        print("{}) {}".format(index + 1, guild.name))
+        LOG.info("{}) {}".format(index + 1, guild.name))
 
 
 @BOT.event
