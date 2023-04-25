@@ -26,42 +26,44 @@ EMOJIS = "🌵🌲🌲🌲🌲🌲🌳🌳🌳🌳🌳🌴🌴🌴🌴🌴🌱�
 async def in_checked_channel_guild(
     channel_id: int, category_id: Optional[int], guild_id: int
 ):
-    rules, exceptions = await DB.list_guild_rules(guild_id)
-    LOG.debug(rules)
-    LOG.debug(exceptions)
-    if channel_id in rules[Container.CHANNEL]:
-        LOG.debug("Channel %s is checked", channel_id)
-        return True
-
-    if (category_id in rules[Container.CATEGORY]) and (
-        channel_id not in exceptions[Container.CHANNEL]
-    ):
-        LOG.debug("Category %s is checked", category_id)
-        return True
-
-    return False
+    rules, exceptions = await DB.list_rules(guild_id, Owner.GUILD)
+    return await in_checked_channel(
+        rules, exceptions, channel_id, category_id, guild_id
+    )
 
 
 async def in_checked_channel_user(
-    channel_id: int, category_id: Optional[int], guild_id: int
+    user_id: int,
+    channel_id: int,
+    category_id: Optional[int],
+    guild_id: int,
 ):
-    rules, exceptions = await DB.list_user_rules(guild_id)
+    rules, exceptions = await DB.list_rules(user_id, Owner.USER)
+    return await in_checked_channel(
+        rules, exceptions, channel_id, category_id, guild_id
+    )
 
+
+async def in_checked_channel(
+    rules: dict,
+    exceptions: dict,
+    channel_id: int,
+    category_id: Optional[int],
+    guild_id: int,
+):  # being in rules/exceptions is mutually exclusive
     if channel_id in rules[Container.CHANNEL]:
-        return True  # channel always wins
-
-    if (
-        category_id in rules[Container.CATEGORY]
-        and channel_id not in exceptions[Container.CHANNEL]
-    ):
         return True
+    if channel_id in exceptions[Container.CHANNEL]:
+        return False
 
-    if (  # this is most of why these funcs are split
-        guild_id in rules[Container.GUILD]
-        and channel_id not in exceptions[Container.CHANNEL]
-        and category_id not in exceptions[Container.CATEGORY]
-    ):
+    if category_id in rules[Container.CATEGORY]:
         return True
+    if category_id in exceptions[Container.CATEGORY]:
+        return False
+
+    if guild_id in rules[Container.GUILD]:
+        return True
+    # guilds cannot have exceptions
 
     return False
 
