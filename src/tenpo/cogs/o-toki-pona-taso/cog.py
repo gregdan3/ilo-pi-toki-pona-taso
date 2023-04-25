@@ -1,18 +1,17 @@
 # STL
 import random
 import logging
-from typing import Optional
+from typing import Tuple, Optional
 
 # PDM
-import discord
-from discord import Thread, DMChannel, TextChannel, ForumChannel
+from discord import Guild, Thread
 from discord.ext import commands
 from discord.message import Message
 from discord.ext.commands import Cog
-from discord.types.channel import GroupDMChannel
+from discord.types.channel import Channel
 
 # LOCAL
-from tenpo.db import Container
+from tenpo.db import Owner, Container
 from tenpo.__main__ import DB
 from tenpo.phase_utils import is_major_phase
 from tenpo.toki_pona_utils import is_toki_pona
@@ -72,35 +71,16 @@ class CogOTokiPonaTaso(Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    # @commands.Cog.listener("on_message")
-    # async def o_toki_pona_taso(self, message: Message):
-    #     # fetch user configuration
-    #     pass
-
     @commands.Cog.listener("on_message")
-    async def tenpo_la_o_toki_pona_taso(self, message: Message):
-        # TODO: combine with user rules so we don't double kasi? hmm or just accept double kasi
-        guild = message.guild
-        if not guild:
+    async def o_toki_pona_taso(self, message: Message):
+        if not (package := await should_check(message)):
             return
+        guild, channel = package
 
-        channel = message.channel
-        if isinstance(channel, DMChannel):
-            return
-        if isinstance(channel, Thread):
-            channel = channel.parent
-
-        if message.author.bot:
-            # TODO: exclude bots, but not pluralkit? they share a per-server id from the webhook
-            # https://pluralkit.me/api/endpoints/#get-proxied-message-information
-            return
-
-        if not is_major_phase():
-            return
-
-        if not await in_checked_channel_guild(
-            channel.id,
-            channel.category_id,
+        if not await in_checked_channel_user(
+            message.author.id,
+            channel.id,  # type: ignore
+            channel.category_id,  # type: ignore
             guild.id,
         ):
             return
@@ -108,8 +88,58 @@ class CogOTokiPonaTaso(Cog):
         if is_toki_pona(message.content):
             return
 
-        LOG.debug("Message %s gets a plant!", message)
+        await message.add_reaction(get_emoji())
+
+    @commands.Cog.listener("on_message")
+    async def tenpo_la_o_toki_pona_taso(self, message: Message):
+        if (package := await should_check(message)) is None:
+            return
+        guild, channel = package
+
+        if not is_major_phase():
+            return
+
+        if not await in_checked_channel_guild(
+            channel.id,  # type: ignore
+            channel.category_id,  # type: ignore
+            guild.id,
+        ):
+            return
+
+        if is_toki_pona(message.content):
+            return
+
         await message.add_reaction(get_emoji())  # TODO: user/guild choose delete/react
+
+
+async def should_check(message: Message) -> Optional[Tuple[Guild, Channel]]:
+    """Determine if a message is in a location and by a user worth checking for TPT
+    Does not check rules or time
+    Return message's guild, channel to check, or None if no check should be performed
+    """
+    if message.author.bot:
+        # TODO: exclude bots, but not pluralkit? they share a per-server id from the webhook
+        # https://pluralkit.me/api/endpoints/#get-proxied-message-information
+        return
+
+    guild = message.guild
+    if not guild:
+        return
+
+    channel = message.channel
+
+    # if a message is ever sent in a non-channel, how
+    # if not channel:
+    #     return
+
+    # redundant to guild check, but pyright will errantly complain
+    # if not isinstance(channel, MessageableGuildChannel):
+    #     return
+
+    if isinstance(channel, Thread):
+        channel = channel.parent
+
+    return guild, channel  # type: ignore
 
 
 def get_emoji():
