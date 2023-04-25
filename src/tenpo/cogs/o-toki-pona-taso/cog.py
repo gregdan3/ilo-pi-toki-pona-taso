@@ -108,8 +108,9 @@ class CogOTokiPonaTaso(Cog):
 
         if is_toki_pona(message.content):
             return
-
-        await message.add_reaction(get_emoji())  # TODO: user/guild choose delete/react
+        react = get_emoji()
+        LOG.debug("Selected react %s", react)
+        await message.add_reaction(react)  # TODO: user/guild choose delete/react
 
 
 async def should_check(message: Message) -> Optional[Tuple[Guild, Channel]]:
