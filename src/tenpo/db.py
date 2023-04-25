@@ -19,7 +19,9 @@ from sqlalchemy import (
     LargeBinary,
     CheckConstraint,
     UniqueConstraint,
+    PrimaryKeyConstraint,
     and_,
+    delete,
     select,
     update,
 )
@@ -47,7 +49,15 @@ some of that duplication is fixable; others are intentionaly different
 """
 
 
+class Action(enum.Enum):
+    INSERT = "INSERT"
+    UPDATE = "UPDATE"
+    DELETE = "DELETE"
+
+
 class Container(enum.Enum):
+    # We HAVE to know what the type is when we read it from the DB
+    # or else we're forced to ask discord which is which
     GUILD = "GUILD"
     CATEGORY = "CATEGORY"
     CHANNEL = "CHANNEL"
@@ -81,15 +91,16 @@ class Users(Base):
 
 class UserRules(Base):
     __tablename__ = "user_rules"
-    id = Column(BigInteger, primary_key=True)  # this is the container id
-    user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False)
+    id = Column(BigInteger, nullable=False)  # this is the container id
+    owner_id = Column(BigInteger, ForeignKey("users.id"), nullable=False)
     ctype = Column(Enum(Container), nullable=False)
-    exception = Column(Boolean, nullable=False)
+    exception = Column(Boolean, nullable=False, default=False)
 
     user = relationship("Users", back_populates="user_rules")
 
-    __table_args__ = (  # enums aren't in sqlite and we only perform this check on insert so sure
-        CheckConstraint(
+    __table_args__ = (
+        PrimaryKeyConstraint("id", "owner_id"),
+        CheckConstraint(  # enums aren't in sqlite and we only perform this check on insert so sure
             ctype.in_([e.value for e in Container]),
             name="check_ctype_valid",
         ),
@@ -100,14 +111,15 @@ class GuildRules(Base):
     # for OLD servers, the channel id for the default #general is the same as the server ID
     # ... this doesn't break anything, it's just weird that id li ken guild_id
     __tablename__ = "guild_rules"
-    id = Column(BigInteger, primary_key=True)
-    guild_id = Column(BigInteger, ForeignKey("guilds.id"), nullable=False)
+    id = Column(BigInteger, nullable=False)
+    owner_id = Column(BigInteger, ForeignKey("guilds.id"), nullable=False)
     ctype = Column(Enum(Container), nullable=False)
-    exception = Column(Boolean, nullable=False)
+    exception = Column(Boolean, nullable=False, default=False)
 
     guild = relationship("Guilds", back_populates="guild_rules")
 
     __table_args__ = (
+        PrimaryKeyConstraint("id", "owner_id"),
         CheckConstraint(
             ctype.in_([e.value for e in Container]),
             name="check_ctype_valid",
@@ -173,108 +185,96 @@ class TenpoDB:
         raise NotImplementedError
 
     async def get_user_config_item(
-        self, guild_id: int, key: str
+        self, user_id: int, key: str
     ) -> Optional[Union[bool, str, int]]:
         raise NotImplementedError
 
-    async def insert_user_rule(
+    async def upsert_rule(
         self,
         id: int,
-        user_id: int,
         ctype: Container,
-        exception: bool,
+        owner_id: int,
+        owner_type: Owner,
+        exception: bool = False,
     ):
+        Table = owner_to_rule_table(owner_type)
         stmt = (
-            insert(UserRules)
+            insert(Table)
             .values(
                 id=id,
-                user_id=user_id,
+                owner_id=owner_id,
                 ctype=ctype,
                 exception=exception,
             )
-            .on_conflict_do_nothing()
+            .on_conflict_do_update(
+                index_elements=["id", "owner_id"], set_=dict(exception=exception)
+            )
         )
         await self.s.execute(stmt)
         await self.s.commit()
 
-    async def delete_user_rule(self, id: int, user_id: int, ctype: Container):
-        stmt = select(UserRules).where(
-            (UserRules.id == id)
-            & (UserRules.user_id == user_id)
-            & (UserRules.ctype == ctype)
+    async def delete_rule(
+        self,
+        id: int,
+        ctype: Container,
+        owner_id: int,
+        owner_type: Owner,
+    ):
+        Table = owner_to_rule_table(owner_type)
+        stmt = delete(Table).where(
+            (Table.id == id) & (Table.owner_id == owner_id) & (Table.ctype == ctype)
+        )
+        await self.s.execute(stmt)
+        await self.s.commit()
+
+    async def toggle_rule(
+        self,
+        id: int,
+        ctype: Container,
+        owner_id: int,
+        owner_type: Owner,
+        exception: bool = False,
+    ):
+        """
+        Insert a rule if it is not in the database.
+        Update a rule if it is in the database but different (exception field).
+        Delete a rule if it is in the database.
+        Return the action taken as a string.
+
+        The name is a bit disingenuous since we can upsert, but my interface only has upsert so it's *fine*.
+        """
+        Table = owner_to_rule_table(owner_type)
+        stmt = select(Table).where(
+            (Table.id == id) & (Table.owner_id == owner_id) & (Table.ctype == ctype)
         )
         result = await self.s.execute(stmt)
-        user_rule = result.scalar_one_or_none()
+        rule = result.scalar_one_or_none()
 
-        if user_rule:
-            await self.s.delete(user_rule)
-            await self.s.commit()
+        if not rule:
+            await self.upsert_rule(id, ctype, owner_id, owner_type, exception)
+            return Action.INSERT
 
-    async def list_user_rules(
-        self, user_id: int
+        if rule.exception != exception:
+            await self.upsert_rule(id, ctype, owner_id, owner_type, exception)
+            return Action.UPDATE
+
+        await self.delete_rule(id, ctype, owner_id, owner_type)
+        return Action.DELETE
+
+    async def list_rules(
+        self,
+        owner_id: int,
+        owner_type: Owner,
     ) -> Tuple[Dict[Container, Set[int]], Dict[Container, Set[int]]]:
-        stmt = select(UserRules).where(UserRules.user_id == user_id)
+        Table = owner_to_rule_table(owner_type)
+        stmt = select(Table).where(Table.owner_id == owner_id)
         result = await self.s.execute(stmt)
-        user_rules = result.scalars().all()
+        found_rules = result.scalars().all()
 
         rules = {val: set() for val in Container}
         exceptions = {val: set() for val in Container}
 
-        for rule in user_rules:
-            cast(int, rule.id)
-            cast(Container, rule.ctype)
-            exceptions[rule.ctype].add(rule.id) if rule.exception else rules[
-                rule.ctype
-            ].add(rule.id)
-
-        return rules, exceptions
-
-    async def insert_guild_rule(
-        self,
-        id: int,
-        guild_id: int,
-        ctype: Container,
-        exception: bool,
-    ):
-        stmt = (
-            insert(GuildRules)
-            .values(
-                id=id,
-                guild_id=guild_id,
-                ctype=ctype,
-                exception=exception,
-            )
-            .on_conflict_do_nothing()
-        )
-        await self.s.execute(stmt)
-        await self.s.commit()
-
-    async def delete_guild_rule(self, guild_id: int, id: int, ctype: Container):
-        stmt = select(GuildRules).where(
-            (GuildRules.id == id)
-            & (GuildRules.guild_id == guild_id)
-            & (GuildRules.ctype == ctype)
-        )
-        result = await self.s.execute(stmt)
-        guild_rule = result.scalar_one_or_none()
-
-        if guild_rule:
-            await self.s.delete(guild_rule)
-            await self.s.commit()
-
-    async def list_guild_rules(
-        self, guild_id: int
-    ) -> Tuple[Dict[Container, Set[int]], Dict[Container, Set[int]]]:
-        stmt = select(GuildRules).where(GuildRules.guild_id == guild_id)
-        result = await self.s.execute(stmt)
-        guild_rules = result.scalars().all()
-
-        # guilds cannot have guild rules
-        rules = {val: set() for val in Container if val != Container.GUILD}
-        exceptions = {val: set() for val in Container if val != Container.GUILD}
-
-        for rule in guild_rules:
-            assert rule.ctype != Container.GUILD
+        for rule in found_rules:
             assert isinstance(rule.id, int)
             exceptions[rule.ctype].add(rule.id) if rule.exception else rules[
                 rule.ctype
@@ -374,3 +374,12 @@ class TenpoDB:
             raise ValueError("No icon/banner found with the given name for the guild")
 
         await self.__set_default_icon_banner(guild_id, icon_banner_id)
+
+
+def owner_to_rule_table(owner_type: Owner) -> GuildRules | UserRules:
+    if owner_type == Owner.GUILD:
+        return GuildRules
+    elif owner_type == Owner.USER:
+        return UserRules
+
+    raise ValueError("Invalid Owner %s", owner_type)
