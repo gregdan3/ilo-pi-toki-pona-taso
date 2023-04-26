@@ -2,7 +2,7 @@
 import enum
 import uuid
 from types import NoneType
-from typing import Any, Set, Dict, List, Tuple, Optional
+from typing import Set, Dict, List, Tuple, Optional
 from datetime import datetime
 
 # PDM
@@ -68,13 +68,6 @@ class Container(enum.Enum):
     CHANNEL = "CHANNEL"
 
 
-class Owner(enum.Enum):
-    # not part of schema
-
-    GUILD = "GUILD"
-    USER = "USER"
-
-
 class ConfigKey(enum.Enum):
     # user only
     REACTS = "reacts"
@@ -82,61 +75,32 @@ class ConfigKey(enum.Enum):
 
     # guild only
     ROLE = "role"
+    ICON = "icon"
 
     # both
 
 
-class Guilds(Base):
-    __tablename__ = "guilds"
+class Entity(Base):
+    __tablename__ = "entity"  # guilds and users
     id = Column(BigInteger, primary_key=True, nullable=False)
     config = Column(NestedMutableJson, nullable=False, default={})
 
-    default_icon_banner_id = Column(UUID, nullable=True)
-
-    icons_banners = relationship("IconsBanners", back_populates="guild")
-    guild_rules = relationship("GuildRules", back_populates="guild")
+    rules = relationship("Rules", back_populates="entity")
+    icons_banners = relationship("IconsBanners", back_populates="entity")
 
 
-class Users(Base):
-    __tablename__ = "users"
-    id = Column(BigInteger, primary_key=True, nullable=False)
-    config = Column(NestedMutableJson, nullable=False, default={})
-
-    user_rules = relationship("UserRules", back_populates="user")
-
-
-class UserRules(Base):
-    __tablename__ = "user_rules"
+class Rules(Base):
+    __tablename__ = "rules"
     id = Column(BigInteger, nullable=False)  # this is the container id
-    owner_id = Column(BigInteger, ForeignKey("users.id"), nullable=False)
+    eid = Column(BigInteger, ForeignKey("entity.id"), nullable=False)
     ctype = Column(Enum(Container), nullable=False)
     exception = Column(Boolean, nullable=False, default=False)
 
-    user = relationship("Users", back_populates="user_rules")
+    entity = relationship("Entity", back_populates="rules")
 
     __table_args__ = (
-        PrimaryKeyConstraint("id", "owner_id"),
+        PrimaryKeyConstraint("id", "eid"),
         CheckConstraint(  # enums aren't in sqlite and we only perform this check on insert so sure
-            ctype.in_([e.value for e in Container]),
-            name="check_ctype_valid",
-        ),
-    )
-
-
-class GuildRules(Base):
-    # for OLD servers, the channel id for the default #general is the same as the server ID
-    # ... this doesn't break anything, it's just weird that id li ken guild_id
-    __tablename__ = "guild_rules"
-    id = Column(BigInteger, nullable=False)
-    owner_id = Column(BigInteger, ForeignKey("guilds.id"), nullable=False)
-    ctype = Column(Enum(Container), nullable=False)
-    exception = Column(Boolean, nullable=False, default=False)
-
-    guild = relationship("Guilds", back_populates="guild_rules")
-
-    __table_args__ = (
-        PrimaryKeyConstraint("id", "owner_id"),
-        CheckConstraint(
             ctype.in_([e.value for e in Container]),
             name="check_ctype_valid",
         ),
@@ -147,7 +111,7 @@ class IconsBanners(Base):
     # conjoined due to pair relationship
     __tablename__ = "icons_banners"
     id = Column(UUID, primary_key=True, default=uuid.uuid4, unique=True, nullable=False)
-    guild_id = Column(BigInteger, ForeignKey("guilds.id"), nullable=False)
+    guild_id = Column(BigInteger, ForeignKey("entity.id"), nullable=False)
     author_id = Column(BigInteger, nullable=True)
     name = Column(String, nullable=False)
     last_used = Column(DateTime, nullable=False)
@@ -156,7 +120,7 @@ class IconsBanners(Base):
     icon = Column(LargeBinary, nullable=False)
     banner = Column(LargeBinary, nullable=True)
 
-    guild = relationship("Guilds", back_populates="icons_banners")
+    entity = relationship("Entity", back_populates="icons_banners")
 
     __table_args__ = (
         UniqueConstraint("guild_id", "name", name="unique_guild_id_name"),
@@ -180,97 +144,70 @@ class TenpoDB:
         await self.s.close()
         await self.engine.dispose()
 
-    async def __insert_guild(self, guild_id: int, config: Optional[dict] = None):
-        new_guild = Guilds(id=guild_id, config=config)
-        self.s.add(new_guild)
-        await self.s.commit()
-
-    async def __insert_user(self, user_id: int):
-        new_user = Users(id=user_id)
+    async def __insert_entity(self, eid: int):
+        new_user = Entity(id=eid)
         self.s.add(new_user)
         await self.s.commit()
 
-    async def __get_entity(  # necessary for sqlalchemy_json behavior
-        self, owner_id: int, owner_type: Owner
-    ) -> Users | Guilds:
-        Table = owner_to_ent_table(owner_type)
-        stmt = select(Table).where(Table.id == owner_id)
+    async def __get_entity(self, eid: int) -> Entity:
+        stmt = select(Entity).where(Entity.id == eid)
         result = await self.s.execute(stmt)
         entity = result.scalar_one_or_none()
 
         if entity is None:
-            entity = Table(id=owner_id, config={})  # TODO: do better?
+            entity = Entity(id=eid, config={})  # TODO: do better?
             self.s.add(entity)
             await self.s.commit()
         return entity
 
-    async def __get_config(self, owner_id: int, owner_type: Owner) -> Column:
-        e = await self.__get_entity(owner_id, owner_type)
+    async def __get_config(self, eid: int) -> Column:
+        e = await self.__get_entity(eid)
         return e.config
 
-    async def __get_config_item(
-        self,
-        owner_id: int,
-        owner_type: Owner,
-        key: ConfigKey,
-    ) -> Optional[JSONType]:
-        config = await self.__get_config(owner_id, owner_type)
+    async def __get_config_item(self, eid: int, key: ConfigKey) -> Optional[JSONType]:
+        config = await self.__get_config(eid)
         return config.get(key.value) if config else None
 
     async def __set_config_item(
         self,
-        owner_id: int,
-        owner_type: Owner,
+        eid: int,
         key: ConfigKey,
         value: JSONType,
     ):
-        entity = await self.__get_entity(owner_id, owner_type)
+        entity = await self.__get_entity(eid)
         entity.config[key.value] = value  # type: ignore
         # you can assign to Column with `sqlalchemy_json`
         await self.s.commit()
 
-    async def set_reacts(self, owner_id: int, owner_type: Owner, reacts: List[str]):
-        await self.__set_config_item(owner_id, owner_type, ConfigKey.REACTS, reacts)
+    async def set_reacts(self, eid: int, reacts: List[str]):
+        await self.__set_config_item(eid, ConfigKey.REACTS, reacts)
 
-    async def get_reacts(self, owner_id: int, owner_type: Owner):
-        return await self.__get_config_item(owner_id, owner_type, ConfigKey.REACTS)
+    async def get_reacts(self, eid: int):
+        return await self.__get_config_item(eid, ConfigKey.REACTS)
 
     async def upsert_rule(
-        self,
-        id: int,
-        ctype: Container,
-        owner_id: int,
-        owner_type: Owner,
-        exception: bool = False,
+        self, id: int, ctype: Container, eid: int, exception: bool = False
     ):
-        Table = owner_to_rule_table(owner_type)
         stmt = (
-            insert(Table)
+            insert(Rules)
             .values(
                 id=id,
-                owner_id=owner_id,
+                eid=eid,
                 ctype=ctype,
                 exception=exception,
             )
             .on_conflict_do_update(  # type: ignore
                 # pyright says .values can be None?
-                index_elements=["id", "owner_id"],
+                index_elements=["id", "eid"],
                 set_=dict(exception=exception),
             )
         )
         await self.s.execute(stmt)
         await self.s.commit()
 
-    async def delete_rule(
-        self,
-        id: int,
-        ctype: Container,
-        owner_id: int,
-        owner_type: Owner,
-    ):
-        Table = owner_to_rule_table(owner_type)
-        stmt = delete(Table).where(
-            (Table.id == id) & (Table.owner_id == owner_id) & (Table.ctype == ctype)
+    async def delete_rule(self, id: int, ctype: Container, eid: int):
+        stmt = delete(Rules).where(
+            (Rules.id == id) & (Rules.eid == eid) & (Rules.ctype == ctype)
         )
         await self.s.execute(stmt)
         await self.s.commit()
@@ -279,8 +216,7 @@ class TenpoDB:
         self,
         id: int,
         ctype: Container,
-        owner_id: int,
-        owner_type: Owner,
+        eid: int,
         exception: bool = False,
     ):
         """
@@ -291,31 +227,28 @@ class TenpoDB:
 
         The name is a bit disingenuous since we can upsert, but my interface only has upsert so it's *fine*.
         """
-        Table = owner_to_rule_table(owner_type)
-        stmt = select(Table).where(
-            (Table.id == id) & (Table.owner_id == owner_id) & (Table.ctype == ctype)
+        stmt = select(Rules).where(
+            (Rules.id == id) & (Rules.eid == eid) & (Rules.ctype == ctype)
         )
         result = await self.s.execute(stmt)
         rule = result.scalar_one_or_none()
 
         if not rule:
-            await self.upsert_rule(id, ctype, owner_id, owner_type, exception)
+            await self.upsert_rule(id, ctype, eid, exception)
             return Action.INSERT
 
         if rule.exception != exception:
-            await self.upsert_rule(id, ctype, owner_id, owner_type, exception)
+            await self.upsert_rule(id, ctype, eid, exception)
             return Action.UPDATE
 
-        await self.delete_rule(id, ctype, owner_id, owner_type)
+        await self.delete_rule(id, ctype, eid)
         return Action.DELETE
 
     async def list_rules(
         self,
-        owner_id: int,
-        owner_type: Owner,
+        eid: int,
     ) -> Tuple[Dict[Container, Set[int]], Dict[Container, Set[int]]]:
-        Table = owner_to_rule_table(owner_type)
-        stmt = select(Table).where(Table.owner_id == owner_id)
+        stmt = select(Rules).where(Rules.eid == eid)
         result = await self.s.execute(stmt)
         found_rules = result.scalars().all()
 
@@ -371,7 +304,7 @@ class TenpoDB:
             .where(
                 and_(
                     IconsBanners.guild_id == guild_id,
-                    IconsBanners.id != Guilds.default_icon_banner_id,
+                    IconsBanners.id != Entity.default_icon_banner_id,
                 )
             )
             .order_by(IconsBanners.last_used.asc())
@@ -402,8 +335,8 @@ class TenpoDB:
         self, guild_id: int, default_icon_banner_id: UUID
     ):
         stmt = (
-            update(Guilds)
-            .where(Guilds.id == guild_id)
+            update(Entity)
+            .where(Entity.id == guild_id)
             .values(default_icon_banner_id=default_icon_banner_id)
         )
         await self.s.execute(stmt)
@@ -422,21 +355,3 @@ class TenpoDB:
             raise ValueError("No icon/banner found with the given name for the guild")
 
         await self.__set_default_icon_banner(guild_id, icon_banner_id)
-
-
-def owner_to_ent_table(owner_type: Owner) -> Guilds | Users:
-    if owner_type == Owner.GUILD:
-        return Guilds
-    elif owner_type == Owner.USER:
-        return Users
-
-    raise ValueError("Invalid Owner %s", owner_type)
-
-
-def owner_to_rule_table(owner_type: Owner) -> GuildRules | UserRules:
-    if owner_type == Owner.GUILD:
-        return GuildRules
-    elif owner_type == Owner.USER:
-        return UserRules
-
-    raise ValueError("Invalid Owner %s", owner_type)
