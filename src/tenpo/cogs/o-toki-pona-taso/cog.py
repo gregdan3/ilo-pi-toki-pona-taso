@@ -10,7 +10,7 @@ from discord.ext.commands import Cog
 from discord.types.channel import Channel
 
 # LOCAL
-from tenpo.db import Owner, Container
+from tenpo.db import Container
 from tenpo.__main__ import DB
 from tenpo.log_utils import getLogger
 from tenpo.chat_utils import DEFAULT_REACTS
@@ -25,7 +25,7 @@ LOG = getLogger()
 async def in_checked_channel_guild(
     channel_id: int, category_id: Optional[int], guild_id: int
 ):
-    rules, exceptions = await DB.list_rules(guild_id, Owner.GUILD)
+    rules, exceptions = await DB.list_rules(guild_id)
     return await in_checked_channel(
         rules, exceptions, channel_id, category_id, guild_id
     )
@@ -37,7 +37,7 @@ async def in_checked_channel_user(
     category_id: Optional[int],
     guild_id: int,
 ):
-    rules, exceptions = await DB.list_rules(user_id, Owner.USER)
+    rules, exceptions = await DB.list_rules(user_id)
     return await in_checked_channel(
         rules, exceptions, channel_id, category_id, guild_id
     )
@@ -88,7 +88,7 @@ class CogOTokiPonaTaso(Cog):
         if is_toki_pona(message.content):
             return
 
-        react = await get_react(message.author.id, Owner.USER)
+        react = await get_react(message.author.id)
         await message.add_reaction(react)
 
     @commands.Cog.listener("on_message")
@@ -110,7 +110,7 @@ class CogOTokiPonaTaso(Cog):
         if is_toki_pona(message.content):
             return
 
-        react = await get_react(message.author.id, Owner.USER)
+        react = await get_react(message.author.id)
         # guild can't choose their own reacts... TODO: ?
         await message.add_reaction(react)
 
@@ -145,8 +145,8 @@ async def should_check(message: Message) -> Optional[Tuple[Guild, Channel]]:
     return guild, channel  # type: ignore
 
 
-async def get_react(owner_id: int, owner_type: Owner):
-    reacts = await DB.get_reacts(owner_id, owner_type)
+async def get_react(eid: int):
+    reacts = await DB.get_reacts(eid)
     if reacts:
         return random.choice(reacts)
     return random.choice(DEFAULT_REACTS)
