@@ -12,7 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.future import select
 
 # LOCAL
-from tenpo.db import Guilds, TenpoDB, IconsBanners
+from tenpo.db import Users, Guilds, TenpoDB, IconsBanners
 
 
 @pytest.fixture(scope="module")
@@ -66,3 +66,19 @@ async def test_icons_banners(tenpo_db):
     assert icon_banner.guild.id == 13579
     assert icon_banner.author_id == 54321
     await tenpo_db.close()
+
+
+def test_users_config_read_write() -> None:
+    # Create a Users instance with a config
+    user = Users(id=1, config={"reacts": ["👍", "👎"]})
+
+    # Test reading the config
+    assert user.config == {"reacts": ["👍", "👎"]}
+
+    # Test writing to the config
+    user.config["language"] = "English"
+    assert user.config == {"reacts": ["👍", "👎"], "language": "English"}
+
+    # Test modifying the config
+    user.config["reacts"].append("🎉")
+    assert user.config == {"reacts": ["👍", "👎", "🎉"], "language": "English"}
