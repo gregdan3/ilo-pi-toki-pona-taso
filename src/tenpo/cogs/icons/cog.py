@@ -5,7 +5,6 @@ from datetime import datetime
 
 # PDM
 from discord import File, User, SlashCommandGroup, AutocompleteContext
-from __main__ import TenpoBot
 from discord.ext import commands
 from discord.channel import TextChannel
 from discord.commands import option
@@ -13,7 +12,7 @@ from discord.ext.commands import Cog
 from discord.commands.context import ApplicationContext
 
 # LOCAL
-from tenpo.__main__ import DB  # fat sigh
+from tenpo.__main__ import DB, TenpoBot
 from tenpo.log_utils import getLogger
 from tenpo.image_utils import ImageDict, make_filename, download_image
 from tenpo.autocomplete_utils import autocomplete_filter
