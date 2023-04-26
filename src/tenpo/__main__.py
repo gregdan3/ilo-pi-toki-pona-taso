@@ -11,9 +11,9 @@ from discord.ext import commands
 
 # LOCAL
 from tenpo.db import TenpoDB
-from tenpo.log_utils import configure_logger
+from tenpo.log_utils import getLogger, configure_logger
 
-LOG = logging.getLogger("tenpo")
+LOG = getLogger()
 
 load_dotenv()
 

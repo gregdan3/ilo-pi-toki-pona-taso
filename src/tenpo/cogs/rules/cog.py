@@ -19,6 +19,9 @@ from discord.commands.context import ApplicationContext
 # LOCAL
 from tenpo.db import Owner, Action, Container
 from tenpo.__main__ import DB, TenpoBot
+from tenpo.log_utils import getLogger
+
+LOG = getLogger()
 
 # can't use discord.guild.GuildChannel because it includes categories
 MessageableGuildChannel = TextChannel | ForumChannel | StageChannel | VoiceChannel

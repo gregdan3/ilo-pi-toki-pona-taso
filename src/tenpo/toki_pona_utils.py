@@ -9,7 +9,6 @@ Each function is responsible for its own pre-processing.
 
 # STL
 import re
-import logging
 from typing import List
 from functools import partial
 from collections import OrderedDict
@@ -17,7 +16,10 @@ from collections import OrderedDict
 # PDM
 import unidecode
 
-LOG = logging.getLogger("tenpo")
+# LOCAL
+from tenpo.log_utils import getLogger
+
+LOG = getLogger()
 
 
 TOKEN_DELIMITERS = r"\s+|(?=[.?!;:])"

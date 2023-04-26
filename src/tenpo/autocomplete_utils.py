@@ -1,3 +1,9 @@
+# LOCAL
+from tenpo.log_utils import getLogger
+
+LOG = getLogger()
+
+
 def is_subsequence(s: str, opt: str) -> bool:
     s_idx, opt_idx = 0, 0
     s_len, opt_len = len(s), len(opt)

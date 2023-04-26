@@ -6,7 +6,10 @@ from typing import Optional, TypedDict
 # PDM
 import httpx
 
-LOG = logging.getLogger("tenpo")
+# LOCAL
+from tenpo.log_utils import getLogger
+
+LOG = getLogger()
 ALLOWED_IMG_TYPES = {"jpeg", "png", "gif"}
 
 

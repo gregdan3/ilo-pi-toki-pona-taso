@@ -1,8 +1,8 @@
 # STL
 import enum
 import uuid
-import logging
-from typing import Set, Dict, List, Tuple, Union, Optional, cast
+from types import NoneType
+from typing import Any, Set, Dict, List, Tuple, Union, Optional, cast
 from datetime import datetime
 
 # PDM
@@ -36,7 +36,10 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy.dialects.sqlite import Insert as insert
 from sqlalchemy_utils.types.uuid import UUIDType as UUID
 
-LOG = logging.getLogger("tenpo")
+# LOCAL
+from tenpo.log_utils import getLogger
+
+LOG = getLogger()
 Base = declarative_base()
 
 """

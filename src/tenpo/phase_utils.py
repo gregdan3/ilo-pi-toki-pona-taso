@@ -1,6 +1,5 @@
 # STL
 import typing
-import logging
 from math import floor
 from typing import Tuple, Literal, Optional, Generator
 from datetime import datetime, timedelta
@@ -10,10 +9,14 @@ import numpy
 from skyfield import api, almanac
 from skyfield.timelib import Time
 
+# LOCAL
+from tenpo.log_utils import getLogger
+
+LOG = getLogger()
+
 Phase = Literal["new", "full"]
 PHASES = typing.get_args(Phase)
 
-LOG = logging.getLogger("tenpo")
 TS = api.load.timescale()
 EPH = api.load("de421.bsp")
 

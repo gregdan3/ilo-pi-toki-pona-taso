@@ -2,6 +2,9 @@
 import logging
 from functools import partial
 
+getLogger = partial(logging.getLogger, "tenpo")
+
+
 LOG_FORMAT = (
     "[%(asctime)s] [%(filename)14s:%(lineno)-4s] [%(levelname)8s]   %(message)s"
 )

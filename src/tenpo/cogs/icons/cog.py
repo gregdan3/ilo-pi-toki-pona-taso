@@ -1,5 +1,4 @@
 # STL
-import logging
 from io import BytesIO
 from typing import Tuple, Optional
 from datetime import datetime
@@ -15,10 +14,11 @@ from discord.commands.context import ApplicationContext
 
 # LOCAL
 from tenpo.__main__ import DB  # fat sigh
+from tenpo.log_utils import getLogger
 from tenpo.image_utils import ImageDict, make_filename, download_image
 from tenpo.autocomplete_utils import autocomplete_filter
 
-LOG = logging.getLogger("tenpo")
+LOG = getLogger()
 LOG.warning("This module is not ready for production!")
 
 

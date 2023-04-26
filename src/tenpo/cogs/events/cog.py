@@ -1,6 +1,3 @@
-# STL
-import logging
-
 # PDM
 from discord.guild import Guild
 from discord.channel import TextChannel
@@ -9,9 +6,10 @@ from discord.commands.context import ApplicationContext
 
 # LOCAL
 from tenpo.__main__ import DB
+from tenpo.log_utils import getLogger
 from tenpo.phase_utils import major_phases_from_now
 
-LOG = logging.getLogger("tenpo")
+LOG = getLogger()
 
 
 NEW_MOON_DESC = """mun suli li pimeja ale la o toki pona taso!

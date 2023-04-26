@@ -1,6 +1,5 @@
 # STL
 import sys
-import logging
 import contextlib
 from io import StringIO
 from typing import List, Optional
@@ -14,9 +13,10 @@ from discord.ext.commands import Cog
 from discord.commands.context import ApplicationContext
 
 # LOCAL
+from tenpo.log_utils import getLogger
 from tenpo.chat_utils import chunk_response, codeblock_wrap
 
-LOG = logging.getLogger("tenpo")
+LOG = getLogger()
 
 
 @contextlib.contextmanager

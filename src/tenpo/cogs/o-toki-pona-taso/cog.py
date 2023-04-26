@@ -1,6 +1,5 @@
 # STL
 import random
-import logging
 from typing import Tuple, Optional
 
 # PDM
@@ -13,10 +12,11 @@ from discord.types.channel import Channel
 # LOCAL
 from tenpo.db import Owner, Container
 from tenpo.__main__ import DB
+from tenpo.log_utils import getLogger
 from tenpo.phase_utils import is_major_phase
 from tenpo.toki_pona_utils import is_toki_pona
 
-LOG = logging.getLogger("tenpo")
+LOG = getLogger()
 
 EMOJIS = "🌵🌲🌲🌲🌲🌲🌳🌳🌳🌳🌳🌴🌴🌴🌴🌴🌱🌱🌱🌱🌱🌿🌿🌿🌿🌿☘️☘️☘️☘️🍀🍃🍂🍁🌷🌺🌻🐝🐌🐛🐞🦋"
 # TODO: add to Guild/user config?

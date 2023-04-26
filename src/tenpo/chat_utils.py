@@ -1,6 +1,10 @@
 # STL
 from typing import List
 
+# LOCAL
+from tenpo.log_utils import getLogger
+
+LOG = getLogger()
 
 def chunk_response(s: str, size: int = 1900) -> List[str]:
     """Split string into `size` large parts
