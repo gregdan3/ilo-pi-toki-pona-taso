@@ -13,6 +13,7 @@ services:
       DB_FILE: "${DB_FILE}"
     volumes:
       - ./userdata/:/project/userdata/
+      - ./de421.bsp:/project/de421.bsp
     deploy:
       restart_policy:
         condition: "unless-stopped"
