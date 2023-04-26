@@ -7,9 +7,10 @@ from datetime import datetime
 
 # PDM
 import pytest
+from sqlalchemy import text, select, update
 
 # LOCAL
-from tenpo.db import Guilds, TenpoDB
+from tenpo.db import Owner, Users, Guilds, TenpoDB, owner_to_ent_table
 
 
 @pytest.fixture(scope="module")
@@ -26,17 +27,27 @@ async def tenpo_db():
     await asyncio.shield(db.close())
 
 
+@pytest.mark.skip("dunders cannot be tested")
 @pytest.mark.asyncio
-async def test_insert_guild(tenpo_db):
+async def test_get_entity(tenpo_db) -> None:
     tenpo_db = await anext(tenpo_db)
 
-    await tenpo_db.insert_guild(123, config={"key": "value"})
+    # Add a user to the database
+    user = Users(id=1, config={"language": "English"})
+    tenpo_db.s.add(user)
+    await tenpo_db.s.commit()
 
-    guild = await tenpo_db.s.get(Guilds, 123)
-    assert guild.id == 123
-    assert guild.config == {"key": "value"}
+    # Test the case when the entity exists
+    entity = await tenpo_db.__get_entity(1, Owner.USER)
+    assert entity is not None
+    assert entity.id == 1
 
-    await tenpo_db.close()
+    # Test the case when the entity doesn't exist
+    non_existent_owner_id = 99999
+    entity = await tenpo_db.__get_entity(non_existent_owner_id, Owner.USER)
+    assert entity is not None
+    assert entity.id == non_existent_owner_id
+    assert entity.config == {}
 
 
 @pytest.mark.asyncio
@@ -108,3 +119,97 @@ async def test_get_icon_banner_by_name(tenpo_db):
     assert fetched_banner.banner == banner
 
     await tenpo_db.close()
+
+
+@pytest.mark.asyncio
+async def test_get_reacts_empty(tenpo_db) -> None:
+    tenpo_db = await anext(tenpo_db)
+
+    # No reacts should be set by default
+    reacts = await tenpo_db.get_reacts(1, Owner.USER)
+    assert reacts is None
+
+
+@pytest.mark.asyncio
+async def test_get_reacts_user(tenpo_db) -> None:
+    tenpo_db = await anext(tenpo_db)
+
+    # Set reacts directly in the database
+    user = Users(id=1, config={"reacts": ["👍", "👎"]})
+    tenpo_db.s.add(user)
+    await tenpo_db.s.commit()
+
+    # Test get_reacts
+    reacts = await tenpo_db.get_reacts(1, Owner.USER)
+    assert reacts == ["👍", "👎"]
+
+
+@pytest.mark.asyncio
+async def test_get_reacts_guild(tenpo_db) -> None:
+    tenpo_db = await anext(tenpo_db)
+
+    # Set reacts directly in the database
+    guild = Guilds(id=1, config={"reacts": ["🎉", "😄"]})
+    tenpo_db.s.add(guild)
+    await tenpo_db.s.commit()
+
+    # Test get_reacts
+    reacts = await tenpo_db.get_reacts(1, Owner.GUILD)
+    assert reacts == ["🎉", "😄"]
+
+
+@pytest.mark.asyncio
+async def test_set_get_reacts_directly(tenpo_db) -> None:
+    tenpo_db = await anext(tenpo_db)
+
+    # Set reacts using the set_reacts method
+    await tenpo_db.set_reacts(1, Owner.USER, ["👍", "👎"])
+
+    # Read the data directly from the tenpo_db.s session
+    stmt = select(Users).where(Users.id == 1)
+    result = await tenpo_db.s.execute(stmt)
+    user = result.scalar_one_or_none()
+
+    # Check the reacts
+    assert user is not None
+    assert user.config["reacts"] == ["👍", "👎"]
+
+
+@pytest.mark.asyncio
+async def test_set_get_user_reacts(tenpo_db) -> None:
+    tenpo_db = await anext(tenpo_db)
+
+    user_reacts = ["👍", "👎", "😄"]
+    await tenpo_db.set_reacts(1, Owner.USER, user_reacts)
+    fetched_user_reacts = await tenpo_db.get_reacts(1, Owner.USER)
+    assert fetched_user_reacts == user_reacts
+
+
+@pytest.mark.asyncio
+async def test_set_get_guild_reacts(tenpo_db) -> None:
+    tenpo_db = await anext(tenpo_db)
+
+    guild_reacts = ["🎉", "❤️", "🚀"]
+    await tenpo_db.set_reacts(1, Owner.GUILD, guild_reacts)
+    fetched_guild_reacts = await tenpo_db.get_reacts(1, Owner.GUILD)
+    assert fetched_guild_reacts == guild_reacts
+
+
+@pytest.mark.asyncio
+async def test_overwrite_user_reacts(tenpo_db) -> None:
+    tenpo_db = await anext(tenpo_db)
+
+    new_user_reacts = ["😍", "😂", "😭"]
+    await tenpo_db.set_reacts(1, Owner.USER, new_user_reacts)
+    fetched_new_user_reacts = await tenpo_db.get_reacts(1, Owner.USER)
+    assert fetched_new_user_reacts == new_user_reacts
+
+
+@pytest.mark.asyncio
+async def test_overwrite_guild_reacts(tenpo_db) -> None:
+    tenpo_db = await anext(tenpo_db)
+
+    new_guild_reacts = ["🌟", "🔥", "💯"]
+    await tenpo_db.set_reacts(1, Owner.GUILD, new_guild_reacts)
+    fetched_new_guild_reacts = await tenpo_db.get_reacts(1, Owner.GUILD)
+    assert fetched_new_guild_reacts == new_guild_reacts

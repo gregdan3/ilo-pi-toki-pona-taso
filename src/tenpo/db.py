@@ -2,7 +2,7 @@
 import enum
 import uuid
 from types import NoneType
-from typing import Any, Set, Dict, List, Tuple, Union, Optional, cast
+from typing import Any, Set, Dict, List, Tuple, Optional
 from datetime import datetime
 
 # PDM
@@ -26,7 +26,7 @@ from sqlalchemy import (
     update,
 )
 from sqlalchemy.orm import relationship, declarative_base
-from sqlalchemy_json import mutable_json_type
+from sqlalchemy_json import NestedMutableJson, mutable_json_type
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -41,6 +41,8 @@ from tenpo.log_utils import getLogger
 
 LOG = getLogger()
 Base = declarative_base()
+JSONPrimitive = str | int | bool | NoneType
+JSONType = JSONPrimitive | List[JSONPrimitive] | Dict[JSONPrimitive, JSONPrimitive]
 
 """
 everything is divided such that I can use `back_populates` because otherwise the interface is misery
@@ -73,10 +75,21 @@ class Owner(enum.Enum):
     USER = "USER"
 
 
+class ConfigKey(enum.Enum):
+    # user only
+    REACTS = "reacts"
+    OPENS = "opens"
+
+    # guild only
+    ROLE = "role"
+
+    # both
+
+
 class Guilds(Base):
     __tablename__ = "guilds"
     id = Column(BigInteger, primary_key=True, nullable=False)
-    config = Column(mutable_json_type(dbtype=JSON, nested=True), nullable=True)
+    config = Column(NestedMutableJson, nullable=False, default={})
 
     default_icon_banner_id = Column(UUID, nullable=True)
 
@@ -87,7 +100,7 @@ class Guilds(Base):
 class Users(Base):
     __tablename__ = "users"
     id = Column(BigInteger, primary_key=True, nullable=False)
-    config = Column(mutable_json_type(dbtype=JSON, nested=True), nullable=True)
+    config = Column(NestedMutableJson, nullable=False, default={})
 
     user_rules = relationship("UserRules", back_populates="user")
 
@@ -167,30 +180,60 @@ class TenpoDB:
         await self.s.close()
         await self.engine.dispose()
 
-    async def insert_guild(self, guild_id: int, config: Optional[dict] = None):
+    async def __insert_guild(self, guild_id: int, config: Optional[dict] = None):
         new_guild = Guilds(id=guild_id, config=config)
         self.s.add(new_guild)
         await self.s.commit()
 
-    async def get_guild_config(self, guild_id: int) -> Optional[dict]:
-        stmt = select(Guilds.config).where(Guilds.id == guild_id)
+    async def __insert_user(self, user_id: int):
+        new_user = Users(id=user_id)
+        self.s.add(new_user)
+        await self.s.commit()
+
+    async def __get_entity(  # necessary for sqlalchemy_json behavior
+        self, owner_id: int, owner_type: Owner
+    ) -> Users | Guilds:
+        Table = owner_to_ent_table(owner_type)
+        stmt = select(Table).where(Table.id == owner_id)
         result = await self.s.execute(stmt)
-        config = result.scalar_one_or_none()
-        return config if config else None
+        entity = result.scalar_one_or_none()
 
-    async def get_guild_config_item(
-        self, guild_id: int, key: str
-    ) -> Optional[Union[bool, str, int]]:
-        config = await self.get_guild_config(guild_id)
-        return config.get(key, None) if config else None
+        if entity is None:
+            entity = Table(id=owner_id, config={})  # TODO: do better?
+            self.s.add(entity)
+            await self.s.commit()
+        return entity
 
-    async def get_user_config(self, user_id: int) -> Optional[dict]:
-        raise NotImplementedError
+    async def __get_config(self, owner_id: int, owner_type: Owner) -> Column:
+        e = await self.__get_entity(owner_id, owner_type)
+        return e.config
 
-    async def get_user_config_item(
-        self, user_id: int, key: str
-    ) -> Optional[Union[bool, str, int]]:
-        raise NotImplementedError
+    async def __get_config_item(
+        self,
+        owner_id: int,
+        owner_type: Owner,
+        key: ConfigKey,
+    ) -> Optional[JSONType]:
+        config = await self.__get_config(owner_id, owner_type)
+        return config.get(key.value) if config else None
+
+    async def __set_config_item(
+        self,
+        owner_id: int,
+        owner_type: Owner,
+        key: ConfigKey,
+        value: JSONType,
+    ):
+        entity = await self.__get_entity(owner_id, owner_type)
+        entity.config[key.value] = value  # type: ignore
+        # you can assign to Column with `sqlalchemy_json`
+        await self.s.commit()
+
+    async def set_reacts(self, owner_id: int, owner_type: Owner, reacts: List[str]):
+        await self.__set_config_item(owner_id, owner_type, ConfigKey.REACTS, reacts)
+
+    async def get_reacts(self, owner_id: int, owner_type: Owner):
+        return await self.__get_config_item(owner_id, owner_type, ConfigKey.REACTS)
 
     async def upsert_rule(
         self,
@@ -209,8 +252,10 @@ class TenpoDB:
                 ctype=ctype,
                 exception=exception,
             )
-            .on_conflict_do_update(
-                index_elements=["id", "owner_id"], set_=dict(exception=exception)
+            .on_conflict_do_update(  # type: ignore
+                # pyright says .values can be None?
+                index_elements=["id", "owner_id"],
+                set_=dict(exception=exception),
             )
         )
         await self.s.execute(stmt)
@@ -377,6 +422,15 @@ class TenpoDB:
             raise ValueError("No icon/banner found with the given name for the guild")
 
         await self.__set_default_icon_banner(guild_id, icon_banner_id)
+
+
+def owner_to_ent_table(owner_type: Owner) -> Guilds | Users:
+    if owner_type == Owner.GUILD:
+        return Guilds
+    elif owner_type == Owner.USER:
+        return Users
+
+    raise ValueError("Invalid Owner %s", owner_type)
 
 
 def owner_to_rule_table(owner_type: Owner) -> GuildRules | UserRules:
