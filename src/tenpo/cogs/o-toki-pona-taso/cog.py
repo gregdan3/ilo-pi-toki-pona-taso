@@ -13,12 +13,12 @@ from discord.types.channel import Channel
 from tenpo.db import Owner, Container
 from tenpo.__main__ import DB
 from tenpo.log_utils import getLogger
+from tenpo.chat_utils import DEFAULT_REACTS
 from tenpo.phase_utils import is_major_phase
 from tenpo.toki_pona_utils import is_toki_pona
 
 LOG = getLogger()
 
-EMOJIS = "🌵🌲🌲🌲🌲🌲🌳🌳🌳🌳🌳🌴🌴🌴🌴🌴🌱🌱🌱🌱🌱🌿🌿🌿🌿🌿☘️☘️☘️☘️🍀🍃🍂🍁🌷🌺🌻🐝🐌🐛🐞🦋"
 # TODO: add to Guild/user config?
 
 
@@ -88,7 +88,8 @@ class CogOTokiPonaTaso(Cog):
         if is_toki_pona(message.content):
             return
 
-        await message.add_reaction(get_emoji())
+        react = await get_react(message.author.id, Owner.USER)
+        await message.add_reaction(react)
 
     @commands.Cog.listener("on_message")
     async def tenpo_la_o_toki_pona_taso(self, message: Message):
@@ -108,9 +109,10 @@ class CogOTokiPonaTaso(Cog):
 
         if is_toki_pona(message.content):
             return
-        react = get_emoji()
-        LOG.debug("Selected react %s", react)
-        await message.add_reaction(react)  # TODO: user/guild choose delete/react
+
+        react = await get_react(message.author.id, Owner.USER)
+        # guild can't choose their own reacts... TODO: ?
+        await message.add_reaction(react)
 
 
 async def should_check(message: Message) -> Optional[Tuple[Guild, Channel]]:
@@ -143,5 +145,8 @@ async def should_check(message: Message) -> Optional[Tuple[Guild, Channel]]:
     return guild, channel  # type: ignore
 
 
-def get_emoji():
-    return random.choice(EMOJIS)
+async def get_react(owner_id: int, owner_type: Owner):
+    reacts = await DB.get_reacts(owner_id, owner_type)
+    if reacts:
+        return random.choice(reacts)
+    return random.choice(DEFAULT_REACTS)
