@@ -1,10 +1,13 @@
 # STL
-import logging
+from typing import List, Tuple
 
 # PDM
+import emoji
 from discord import (
     Cog,
+    User,
     Guild,
+    Member,
     TextChannel,
     ForumChannel,
     StageChannel,
@@ -20,6 +23,15 @@ from discord.commands.context import ApplicationContext
 from tenpo.db import Owner, Action, Container
 from tenpo.__main__ import DB, TenpoBot
 from tenpo.log_utils import getLogger
+from tenpo.chat_utils import (
+    ACTION_MAP,
+    CONTAINER_MAP,
+    format_reacts,
+    format_channel,
+    get_discord_reacts,
+    format_reacts_rules,
+    format_rules_exceptions,
+)
 
 LOG = getLogger()
 
@@ -27,59 +39,6 @@ LOG = getLogger()
 MessageableGuildChannel = TextChannel | ForumChannel | StageChannel | VoiceChannel
 DiscordContainer = Guild | CategoryChannel | MessageableGuildChannel
 
-
-LOG = logging.getLogger("tenpo")
-
-
-CONTAINER_MAP = {
-    Container.CHANNEL: "tomo",
-    Container.CATEGORY: "kulupu",
-    Container.GUILD: "ma",
-}
-ACTION_MAP = {
-    Action.INSERT: "pana",
-    Action.UPDATE: "ante",
-    Action.DELETE: "weka",
-}
-
-
-def format_channel(id: int):
-    """categories are channels according to pycord and they use the same escape"""
-    return f"<#{id}>"
-
-
-def format_guild(id: int):
-    # NOTE: i hope they add something better than this
-    return f"<https://discord.com/channels/{id}>"
-
-
-def format_rules(rules, prefix):
-    rules_str = prefix + ": \n"
-    for val in Container:
-        if not rules[val]:
-            continue
-
-        rules_str += "  " + CONTAINER_MAP[val] + "\n"
-        formatter = format_channel
-        if val == Container.GUILD:
-            formatter = format_guild
-
-        for rule in rules[val]:
-            rules_str += "    " + formatter(rule) + "\n"
-
-    return rules_str
-
-
-def format_rules_exceptions(rules: dict, exceptions: dict):
-    resp = ""
-    if rules:
-        frules = format_rules(rules, "ni o toki pona taso")
-        resp += frules
-        resp += "\n"
-    if exceptions:
-        fexcepts = format_rules(exceptions, "ni li ken toki ale")
-        resp += fexcepts
-    return resp
 
 
 # TODO:: generate these functions
@@ -96,11 +55,7 @@ class CogRules(Cog):
     @guild_rules.command(name="ale", description="o lukin e lawa ma")
     @commands.has_permissions(administrator=True)
     async def guild_list_rules(self, ctx: ApplicationContext):
-        guild = ctx.guild
-        assert guild
-        rules, exceptions = await DB.list_rules(guild.id, Owner.GUILD)
-        formatted = format_rules_exceptions(rules, exceptions)
-        await ctx.respond(formatted)
+        await list_rules(ctx, Owner.GUILD)
 
     @guild_rules.command(name="tomo", description="o ante e lawa tomo")
     @option(name="tomo", description="lon tomo seme")
@@ -145,14 +100,7 @@ class CogRules(Cog):
 
     @user_rules.command(name="ale", description="o lukin e lawa sina")
     async def user_list_rules(self, ctx: ApplicationContext):
-        guild = ctx.guild
-        assert guild
-        user = ctx.user
-        assert user
-
-        rules, exceptions = await DB.list_rules(user.id, Owner.USER)
-        formatted = format_rules_exceptions(rules, exceptions)
-        await ctx.respond(formatted, ephemeral=True)
+        await list_rules(ctx, Owner.USER)
 
     @user_rules.command(name="tomo", description="o ante e lawa tomo")
     @option(name="tomo", description="lon tomo seme")
@@ -183,17 +131,64 @@ class CogRules(Cog):
     ):
         await cmd_toggle_rule(ctx, ctx.guild, Container.GUILD, Owner.USER)
 
-    @user_rules.command(name="open", description="ilo o lukin ala e toki open seme")
-    @option(name="toki", description="toki open")
-    async def user_manage_prefix(self, ctx: ApplicationContext, toki: str):
-        pass
+    # user_open = user_rules.create_subgroup(
+    #     name="open", description="mi o lukin ala e toki pi open seme"
+    # )
+    #
+    # @user_open.command(name="pana", description="ilo o lukin ala e toki open seme")
+    # @option(name="toki", description="toki open")
+    # async def user_add_prefix(self, ctx: ApplicationContext, toki: str):
+    #     pass
+    #
+    # @user_open.command(name="weka", description="")
+    # @option(name="", description="mi weka e sitelen seme")
+    # async def user_delete_prefix(self, ctx: ApplicationContext, toki: str):
+    #     pass
 
     @user_rules.command(
-        name="sitelen", description="sina toki pona ala la mi seme e toki"
+        name="sitelen", description="sina toki pona ala la mi pana e sitelen seme"
     )
-    @option(name="sitelen", description="")
-    async def user_manage_emojis(self, ctx: ApplicationContext, sitelen: str):
-        pass
+    @option(name="sitelen", description="sitelen")
+    async def user_manage_reacts(self, ctx: ApplicationContext, sitelen: str = ""):
+        user = ctx.user
+        assert user
+
+        if not sitelen:
+            await DB.set_reacts(user.id, Owner.USER, [])
+            await ctx.respond("sina pana e sitelen ala la mi weka e sitelen ale")
+            return
+
+        emojis = [e["emoji"] for e in emoji.emoji_list(sitelen)]
+        reacts = get_discord_reacts(sitelen)
+        all_reacts = emojis + reacts
+        if not all_reacts:
+            await ctx.respond(
+                "sina pana e sitelen, taso mi sona ala e ona. ona li pona ala pona?"
+            )
+            return
+        await DB.set_reacts(user.id, Owner.USER, all_reacts)
+
+        if __debug__:
+            reacts = await DB.get_reacts(user.id, Owner.USER)
+            LOG.debug(reacts)
+
+        formatted_reacts = format_reacts(all_reacts)
+        await ctx.respond(
+            "sina toki pona ala la mi pana e sitelen wan pi ni ale:\n%s"
+            % formatted_reacts
+        )
+
+
+def owner_resp_coalesce(
+    otype: Owner, user: User | Member, guild: Guild
+) -> Tuple[User | Member | Guild, bool]:
+    if otype == Owner.USER:
+        owner = user
+        ephemeral = True
+    elif otype == Owner.GUILD:
+        owner = guild
+        ephemeral = False
+    return owner, ephemeral
 
 
 async def cmd_toggle_rule(
@@ -208,19 +203,14 @@ async def cmd_toggle_rule(
     user = ctx.user
     assert user
 
-    if otype == Owner.USER:
-        owner = user
-        ephemeral = True
-    elif otype == Owner.GUILD:
-        owner = guild
-        ephemeral = False
+    owner, ephemeral = owner_resp_coalesce(otype, user, guild)
 
     action = await DB.toggle_rule(container.id, ctype, owner.id, otype, exception)
-    response = await build_response(container, ctype, otype, action, exception)
+    response = await build_rule_resp(container, ctype, otype, action, exception)
     await ctx.respond(response, ephemeral=ephemeral)
 
 
-async def build_response(
+async def build_rule_resp(
     container: DiscordContainer,
     ctype: Container,
     otype: Owner,
@@ -247,6 +237,25 @@ async def build_response(
     return response
 
 
+async def list_rules(ctx: ApplicationContext, otype: Owner):
+    guild = ctx.guild
+    assert guild
+    user = ctx.user
+    assert user
+
+    owner, ephemeral = owner_resp_coalesce(otype, user, guild)
+
+    rules, exceptions = await DB.list_rules(owner.id, otype)
+    rules_info = format_rules_exceptions(rules, exceptions)
+
+    reacts = await DB.get_reacts(owner.id, otype)
+    reacts_info = format_reacts_rules(reacts)
+
+    result = rules_info + "\n\n" + reacts_info
+
+    await ctx.respond(result, ephemeral=ephemeral)
+
+
 async def lawa_help(ctx: ApplicationContext):
     sona = """mi __ilo pi toki pona taso__. sina toki pona ala la mi pana e sona pakala.
 /lawa sona: mi pana e toki ni.
@@ -263,7 +272,7 @@ sina lawa tu e ijo sama la mi weka e lukin.
     - sina lawa tu e ijo sama la mi weka e lukin.
 
 /lawa open [toki]: toki li lon open pi toki sina la mi lukin ala e ona.
-/lawa sitelen: sina toki pona ala la mi pana e sitelen.
+/lawa sitelen [sitelen]: sina toki pona ala la mi pana e sitelen.
 /lawa weka [True|False]: sina toki pona ala la mi weka e toki. sina wile ala e weka la
     """
     await ctx.respond(sona)
