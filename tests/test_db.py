@@ -12,7 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.future import select
 
 # LOCAL
-from tenpo.db import Users, Guilds, TenpoDB, IconsBanners
+from tenpo.db import Entity, TenpoDB, IconsBanners
 
 
 @pytest.fixture(scope="module")
@@ -33,12 +33,12 @@ async def tenpo_db():
 async def test_guilds(tenpo_db):
     tenpo_db = await anext(tenpo_db)
     # Create a guild
-    new_guild = Guilds(id=12345)
+    new_guild = Entity(id=12345)
     tenpo_db.s.add(new_guild)
     await tenpo_db.s.commit()
 
     # Query the created guild
-    result = await tenpo_db.s.execute(select(Guilds).filter_by(id=12345))
+    result = await tenpo_db.s.execute(select(Entity).filter_by(id=12345))
     guild = result.scalars().one()
     assert guild.id == 12345
     await tenpo_db.close()
@@ -48,7 +48,7 @@ async def test_guilds(tenpo_db):
 async def test_icons_banners(tenpo_db):
     tenpo_db = await anext(tenpo_db)
     # Create a guild and icons_banners
-    new_guild = Guilds(id=13579)
+    new_guild = Entity(id=13579)
     new_icon_banner = IconsBanners(
         id=uuid.uuid4(),
         guild_id=13579,
@@ -69,8 +69,8 @@ async def test_icons_banners(tenpo_db):
 
 
 def test_users_config_read_write() -> None:
-    # Create a Users instance with a config
-    user = Users(id=1, config={"reacts": ["👍", "👎"]})
+    # Create a Entity instance with a config
+    user = Entity(id=1, config={"reacts": ["👍", "👎"]})
 
     # Test reading the config
     assert user.config == {"reacts": ["👍", "👎"]}
