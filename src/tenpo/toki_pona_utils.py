@@ -22,13 +22,13 @@ from tenpo.log_utils import getLogger
 LOG = getLogger()
 
 
-TOKEN_DELIMITERS = r"\s+|(?=[.?!;:])"
-CONSECUTIVE_DUPLICATES = r"(.)\1+"
-SPOILERS = r"\|\|[^|]+\|\|"
-QUOTES = r'"[^"]+"' + r"|" + r"'[^']+'"
-URLS = r"https?:\/\/\S+"
-EMOTES = r"<a?:\w+:\d+>"
-SENT_CLEANERS = [SPOILERS, QUOTES, URLS, EMOTES]  # TODO: partial-ify
+TOKEN_DELIMITERS_RE = r"\s+|(?=[.?!;:])"
+CONSECUTIVE_DUPLICATES_RE = r"(.)\1+"
+SPOILERS_RE = r"\|\|[^|]+\|\|"
+QUOTES_RE = r'"[^"]+"' + r"|" + r"'[^']+'"
+URLS_RE = r"https?:\/\/\S+"
+EMOTES_RE = r"<a?:\w+:\d+>"
+SENT_CLEANERS = [SPOILERS_RE, QUOTES_RE, URLS_RE, EMOTES_RE]  # TODO: partial-ify
 
 STRICT_REGEX = r"^(?:(?:^[aeiou]|[klmnps][aeiou]|[jt][aeou]|[w][aei])(?:n(?![mn]))?)+$"
 LOOSE_REGEX = r"^(?:[jklmnpstw]?[aeiou]n?)(?:[jklmnpstw][aeiou]n?)*|n$"
@@ -44,12 +44,12 @@ TOKEN_FILTERS = [
 TOKEN_CLEANERS = [
     # NOTE: ORDER MATTERS
     lambda s: s.lower(),  # lowercase
-    partial(re.sub, CONSECUTIVE_DUPLICATES, r"\1"),  # rm consecutive duplicates
+    partial(re.sub, CONSECUTIVE_DUPLICATES_RE, r"\1"),  # rm consecutive duplicates
 ]
 
 
 def tokenize(s: str) -> list[str]:
-    toks_punct = re.split(TOKEN_DELIMITERS, s)
+    toks_punct = re.split(TOKEN_DELIMITERS_RE, s)
     return toks_punct
 
 
