@@ -4,6 +4,7 @@ import uuid
 from types import NoneType
 from typing import Set, Dict, List, Tuple, Optional, cast
 from datetime import datetime
+from contextlib import asynccontextmanager
 
 # PDM
 from asyncinit import asyncinit
@@ -122,33 +123,43 @@ class IconsBanners(Base):
 class TenpoDB:
     engine: AsyncEngine
     sgen: async_sessionmaker
-    s: AsyncSession
+
+    """
+    Any function which
+    - exposes a session parameter
+    - exposes a config key parameter
+    Must be protected (`__methodname__`).
+    """
 
     async def __init__(self, database_file: str):
         self.engine = create_async_engine(f"sqlite+aiosqlite:///{database_file}")
         self.sgen = async_sessionmaker(bind=self.engine, expire_on_commit=False)
         async with self.engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
-        self.s = self.sgen()
 
     async def close(self):
-        await self.s.close()
         await self.engine.dispose()
 
-    async def __get_entity(self, eid: int) -> Entity:
+    @asynccontextmanager
+    async def session(self):
+        async with self.sgen() as s:
+            yield s
+
+    async def __get_entity(self, s: AsyncSession, eid: int) -> Entity:
         stmt = select(Entity).where(Entity.id == eid)
-        result = await self.s.execute(stmt)
+        result = await s.execute(stmt)
         entity = result.scalar_one_or_none()
 
         if entity is None:
             entity = Entity(id=eid, config={})  # TODO: do better?
-            self.s.add(entity)
-            await self.s.commit()
+            s.add(entity)
+            await s.commit()
         return entity
 
     async def __get_config(self, eid: int) -> Column:
-        e = await self.__get_entity(eid)
-        return e.config
+        async with self.session() as s:
+            e = await self.__get_entity(s, eid)
+            return e.config
 
     async def __get_config_item(self, eid: int, key: ConfigKey) -> Optional[JSONType]:
         config = await self.__get_config(eid)
@@ -160,10 +171,11 @@ class TenpoDB:
         key: ConfigKey,
         value: JSONType,
     ):
-        entity = await self.__get_entity(eid)
-        entity.config[key.value] = value  # type: ignore
-        # you can assign to Column with `sqlalchemy_json`
-        await self.s.commit()
+        async with self.session() as s:
+            entity = await self.__get_entity(s, eid)
+            entity.config[key.value] = value  # type: ignore
+            # you can assign to Column with `sqlalchemy_json`
+            await s.commit()
 
     async def set_reacts(self, eid: int, reacts: List[str]):
         await self.__set_config_item(eid, ConfigKey.REACTS, reacts)
@@ -200,8 +212,13 @@ class TenpoDB:
         await self.set_role(eid, to_assign)
         return not is_same  # true = wrote, false = deleted
 
-    async def upsert_rule(
-        self, id: int, ctype: Container, eid: int, exception: bool = False
+    async def __upsert_rule(
+        self,
+        s: AsyncSession,
+        id: int,
+        ctype: Container,
+        eid: int,
+        exception: bool = False,
     ):
         stmt = (
             insert(Rules)
@@ -217,15 +234,15 @@ class TenpoDB:
                 set_=dict(exception=exception),
             )
         )
-        await self.s.execute(stmt)
-        await self.s.commit()
+        await s.execute(stmt)
+        await s.commit()
 
-    async def delete_rule(self, id: int, ctype: Container, eid: int):
+    async def __delete_rule(self, s: AsyncSession, id: int, ctype: Container, eid: int):
         stmt = delete(Rules).where(
             (Rules.id == id) & (Rules.eid == eid) & (Rules.ctype == ctype)
         )
-        await self.s.execute(stmt)
-        await self.s.commit()
+        await s.execute(stmt)
+        await s.commit()
 
     async def toggle_rule(
         self,
@@ -242,41 +259,43 @@ class TenpoDB:
 
         The name is a bit disingenuous since we can upsert, but my interface only has upsert so it's *fine*.
         """
-        stmt = select(Rules).where(
-            (Rules.id == id) & (Rules.eid == eid) & (Rules.ctype == ctype)
-        )
-        result = await self.s.execute(stmt)
-        rule = result.scalar_one_or_none()
+        async with self.session() as s:
+            stmt = select(Rules).where(
+                (Rules.id == id) & (Rules.eid == eid) & (Rules.ctype == ctype)
+            )
+            result = await s.execute(stmt)
+            rule = result.scalar_one_or_none()
 
-        if not rule:
-            await self.upsert_rule(id, ctype, eid, exception)
-            return Action.INSERT
+            if not rule:
+                await self.__upsert_rule(s, id, ctype, eid, exception)
+                return Action.INSERT
 
-        if rule.exception != exception:
-            await self.upsert_rule(id, ctype, eid, exception)
-            return Action.UPDATE
+            if rule.exception != exception:
+                await self.__upsert_rule(s, id, ctype, eid, exception)
+                return Action.UPDATE
 
-        await self.delete_rule(id, ctype, eid)
-        return Action.DELETE
+            await self.__delete_rule(s, id, ctype, eid)
+            return Action.DELETE
 
     async def list_rules(
         self,
         eid: int,
     ) -> Tuple[Dict[Container, Set[int]], Dict[Container, Set[int]]]:
-        stmt = select(Rules).where(Rules.eid == eid)
-        result = await self.s.execute(stmt)
-        found_rules = result.scalars().all()
+        async with self.session() as s:
+            stmt = select(Rules).where(Rules.eid == eid)
+            result = await s.execute(stmt)
+            found_rules = result.scalars().all()
 
-        rules = {val: set() for val in Container}
-        exceptions = {val: set() for val in Container}
+            rules = {val: set() for val in Container}
+            exceptions = {val: set() for val in Container}
 
-        for rule in found_rules:
-            assert isinstance(rule.id, int)
-            exceptions[rule.ctype].add(rule.id) if rule.exception else rules[
-                rule.ctype
-            ].add(rule.id)
+            for rule in found_rules:
+                assert isinstance(rule.id, int)
+                exceptions[rule.ctype].add(rule.id) if rule.exception else rules[
+                    rule.ctype
+                ].add(rule.id)
 
-        return rules, exceptions
+            return rules, exceptions
 
     async def insert_icon_banner(
         self,
@@ -303,48 +322,52 @@ class TenpoDB:
             )
             .on_conflict_do_nothing()
         )  # TODO: user reuses name la explode at them
-        result = await self.s.execute(stmt)
-        await self.s.commit()
-        return result.inserted_primary_key[0]
+        async with self.session() as s:
+            result = await s.execute(stmt)
+            await s.commit()
+            return result.inserted_primary_key[0]
 
     async def get_icon_banner_names(self, guild_id: int) -> List[str]:
-        stmt = select(IconsBanners.name).where(IconsBanners.guild_id == guild_id)
-        result = await self.s.execute(stmt)
-        return [row.name for row in result.fetchall()]
+        async with self.session() as s:
+            stmt = select(IconsBanners.name).where(IconsBanners.guild_id == guild_id)
+            result = await s.execute(stmt)
+            return [row.name for row in result.fetchall()]
 
     async def get_event_icon_banner(self, guild_id: int):
         """Returns the oldest non-default icon+banner pair"""
-        stmt = (
-            select(IconsBanners)
-            .where(
-                and_(
-                    IconsBanners.guild_id == guild_id,
-                    IconsBanners.id != Entity.default_icon_banner_id,
+        async with self.session() as s:
+            stmt = (
+                select(IconsBanners)
+                .where(
+                    and_(
+                        IconsBanners.guild_id == guild_id,
+                        IconsBanners.id != Entity.default_icon_banner_id,
+                    )
                 )
+                .order_by(IconsBanners.last_used.asc())
+                .limit(1)
             )
-            .order_by(IconsBanners.last_used.asc())
-            .limit(1)
-        )
-        result = await self.s.execute(stmt)
-        icon_banner = result.scalar_one_or_none()
-        return icon_banner
+            result = await s.execute(stmt)
+            icon_banner = result.scalar_one_or_none()
+            return icon_banner
 
     async def get_icon_banner_by_name(
         self, guild_id: int, name: str
     ) -> Optional[IconsBanners]:
-        stmt = (
-            select(IconsBanners)
-            .where(
-                and_(
-                    IconsBanners.guild_id == guild_id,
-                    IconsBanners.name == name,
+        async with self.session() as s:
+            stmt = (
+                select(IconsBanners)
+                .where(
+                    and_(
+                        IconsBanners.guild_id == guild_id,
+                        IconsBanners.name == name,
+                    )
                 )
+                .limit(1)
             )
-            .limit(1)
-        )
-        result = await self.s.execute(stmt)
-        icon_banner = result.scalar_one_or_none()
-        return icon_banner
+            result = await s.execute(stmt)
+            icon_banner = result.scalar_one_or_none()
+            return icon_banner
 
     async def __set_default_icon_banner(
         self, guild_id: int, default_icon_banner_id: UUID
@@ -354,8 +377,8 @@ class TenpoDB:
             .where(Entity.id == guild_id)
             .values(default_icon_banner_id=default_icon_banner_id)
         )
-        await self.s.execute(stmt)
-        await self.s.commit()
+        await s.execute(stmt)
+        await s.commit()
 
     async def set_default_icon_banner(self, guild_id: int, name: str) -> None:
         stmt = (
@@ -363,7 +386,7 @@ class TenpoDB:
             .where(IconsBanners.guild_id == guild_id)
             .where(IconsBanners.name == name)
         )
-        result = await self.s.execute(stmt)
+        result = await s.execute(stmt)
         icon_banner_id = result.scalar_one_or_none()
 
         if not icon_banner_id:
