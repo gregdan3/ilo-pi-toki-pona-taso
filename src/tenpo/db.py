@@ -2,7 +2,7 @@
 import enum
 import uuid
 from types import NoneType
-from typing import Set, Dict, List, Tuple, Optional
+from typing import Set, Dict, List, Tuple, Optional, cast
 from datetime import datetime
 
 # PDM
@@ -173,8 +173,24 @@ class TenpoDB:
     async def set_reacts(self, eid: int, reacts: List[str]):
         await self.__set_config_item(eid, ConfigKey.REACTS, reacts)
 
-    async def get_reacts(self, eid: int):
-        return await self.__get_config_item(eid, ConfigKey.REACTS)
+    async def get_reacts(self, eid: int) -> List[str]:
+        return cast(List[str], await self.__get_config_item(eid, ConfigKey.REACTS))
+
+    async def get_opens(self, eid: int):
+        opens = (
+            cast(List[str], await self.__get_config_item(eid, ConfigKey.OPENS)) or []
+        )
+        return opens
+
+    async def toggle_open(self, eid: int, open: str) -> bool:
+        # TODO: is it better to extend the list in sqlalchemy_json?
+        opens = await self.get_opens(eid)
+        if open in opens:
+            opens.remove(open)
+        else:
+            opens.append(open)
+        await self.__set_config_item(eid, ConfigKey.OPENS, opens)
+        return open in opens
 
     async def upsert_rule(
         self, id: int, ctype: Container, eid: int, exception: bool = False

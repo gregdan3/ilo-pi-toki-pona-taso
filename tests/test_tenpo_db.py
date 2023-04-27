@@ -3,6 +3,7 @@ Test the interface of TenpoDB
 """
 # STL
 import asyncio
+from typing import List
 from datetime import datetime
 
 # PDM
@@ -10,7 +11,7 @@ import pytest
 from sqlalchemy import text, select, update
 
 # LOCAL
-from tenpo.db import Entity, TenpoDB
+from tenpo.db import Entity, TenpoDB, ConfigKey
 
 
 @pytest.fixture(scope="module")
@@ -27,7 +28,7 @@ async def tenpo_db():
     await asyncio.shield(db.close())
 
 
-@pytest.mark.skip("dunders cannot be tested")
+@pytest.mark.skip("dunders cannot be tested by their name")
 @pytest.mark.asyncio
 async def test_get_entity(tenpo_db) -> None:
     tenpo_db = await anext(tenpo_db)
@@ -51,9 +52,7 @@ async def test_get_entity(tenpo_db) -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.skip(
-    "not been updated since db started tracking default in table instead of config"
-)
+@pytest.mark.skip("not updated since db rewrite but relevant to future db")
 async def test_set_guild_default_icon_banner(tenpo_db):
     tenpo_db = await anext(tenpo_db)
 
@@ -183,3 +182,34 @@ async def test_set_get_reacts(tenpo_db) -> None:
     await tenpo_db.set_reacts(1, guild_reacts)
     fetched_guild_reacts = await tenpo_db.get_reacts(1)
     assert fetched_guild_reacts == guild_reacts
+
+
+@pytest.mark.asyncio
+async def test_get_opens(tenpo_db) -> None:
+    tenpo_db = await anext(tenpo_db)
+
+    opens: List[str] = ["channel1", "channel2"]
+    await tenpo_db._TenpoDB__set_config_item(1, ConfigKey.OPENS, opens)
+
+    saved_opens = await tenpo_db.get_opens(1)
+    assert saved_opens == opens
+
+
+@pytest.mark.asyncio
+async def test_toggle_open(tenpo_db) -> None:
+    tenpo_db = await anext(tenpo_db)
+
+    open_channel: str = "channel1"
+    await tenpo_db._TenpoDB__set_config_item(1, ConfigKey.OPENS, [])
+
+    added = await tenpo_db.toggle_open(1, open_channel)
+    assert added
+
+    saved_opens = await tenpo_db.get_opens(1)
+    assert saved_opens == [open_channel]
+
+    removed = await tenpo_db.toggle_open(1, open_channel)
+    assert not removed
+
+    saved_opens = await tenpo_db.get_opens(1)
+    assert saved_opens == []

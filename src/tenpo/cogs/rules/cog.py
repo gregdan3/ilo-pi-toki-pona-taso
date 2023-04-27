@@ -1,6 +1,3 @@
-# STL
-from typing import List, Tuple
-
 # PDM
 import emoji
 from discord import (
@@ -155,19 +152,18 @@ class CogRules(Cog):
         assert actor
         await cmd_toggle_rule(ctx, actor, ctx.guild, Container.GUILD, ephemeral=True)
 
-    # user_open = user_rules.create_subgroup(
-    #     name="open", description="mi o lukin ala e toki pi open seme"
-    # )
-    #
-    # @user_open.command(name="pana", description="ilo o lukin ala e toki open seme")
-    # @option(name="toki", description="toki open")
-    # async def user_add_prefix(self, ctx: ApplicationContext, toki: str):
-    #     pass
-    #
-    # @user_open.command(name="weka", description="")
-    # @option(name="", description="mi weka e sitelen seme")
-    # async def user_delete_prefix(self, ctx: ApplicationContext, toki: str):
-    #     pass
+    @user_rules.command(
+        name="open", description="open pi toki sina li ni la mi lukin ala"
+    )
+    @option(name="toki", description="toki open")
+    async def user_toggle_opens(self, ctx: ApplicationContext, toki: str):
+        user = ctx.user
+        assert user
+        result = await DB.toggle_open(user.id, toki)
+        if not result:
+            await ctx.respond("open pi toki sina li ni la mi lukin ala: __%s__" % toki)
+            return
+        await ctx.respond("mi kama lukin e toki open ni: __%s__" % toki)
 
     @user_rules.command(
         name="sitelen", description="sina toki pona ala la mi pana e sitelen seme"
@@ -244,22 +240,22 @@ async def build_rule_resp(
     return response
 
 
-async def cmd_list_rules(
-    ctx: ApplicationContext,
-    actor: DiscordActor,
-    ephemeral: bool,
-):
+# TODO: for following two funcs, better division of user|guild behavior?
+
+
+async def cmd_list_rules(ctx: ApplicationContext, actor: DiscordActor, ephemeral: bool):
     guild = ctx.guild
     assert guild
     user = ctx.user
     assert user
 
+    is_guild = isinstance(actor, Guild)
     rules_info = ""
     rules, exceptions = await DB.list_rules(actor.id)
     rules_info = format_rules_exceptions(rules, exceptions)
 
     reacts_info = ""
-    if isinstance(actor, Guild):
+    if not is_guild:
         reacts = await DB.get_reacts(actor.id)
         reacts_info = format_reacts_rules(reacts)
 
@@ -268,20 +264,29 @@ async def cmd_list_rules(
     await ctx.respond(result, ephemeral=ephemeral)
 
 
-async def cmd_lawa_help(
-    ctx: ApplicationContext, actor: DiscordActor, ephemeral: bool = True
-):
-    sona = """mi __ilo pi toki pona taso__. sina toki pona ala la mi pona e ona. o lukin e ken mi:
+async def cmd_lawa_help(ctx: ApplicationContext, actor: DiscordActor, ephemeral: bool):
+    guild = ctx.guild
+    assert guild
+    user = ctx.user
+    assert user
 
-`/lawa sona`: mi pana e toki ni.
-`/lawa ale`: mi pana e lawa ale sina.
-`/lawa [tomo|kulupu|ma] (ala)`: mi lukin e ijo.
-    - sina toki pona ala lon ijo la mi pona e ona.
-    - `ala` la mi lukin ala e ijo. ijo ni li ken lon insa pi ijo pi toki pona.
-    - sina pana tu e ijo sama la mi weka e lukin.
-`/lawa open [toki]`: toki li lon open pi toki sina la mi lukin ala e ona.
-    - sina pana tu e toki sama la mi weka e ona.
-`/lawa sitelen [sitelen]`: sina toki pona ala la mi pana e sitelen.
-`/lawa weka [True|False]`: sina toki pona ala la mi weka e toki. sina wile ala e weka la
-    """
+    is_guild = isinstance(actor, Guild)
+    prefix = "/lawa"
+    if is_guild:
+        prefix = "/lawa_ma"
+    sona = "mi __ilo pi toki pona taso__. sina toki pona ala la mi pona e ona. o lukin e ken mi:\n"
+
+    sona += f"`{prefix} sona`: mi pana e toki ni.\n"
+    sona += f"`{prefix} ale`: mi pana e lawa ale sina.\n"
+    sona += f"`{prefix} [tomo|kulupu|ma] (ala)`: mi lukin e ijo.\n"
+    sona += f"    - sina toki pona ala lon ijo la mi pona e ona.\n"
+    sona += f"    - `ala` la mi lukin ala e ijo. ijo ni li ken lon insa pi ijo pi toki pona.\n"
+    sona += f"    - sina pana tu e ijo sama la mi weka e lukin.\n"
+    if not is_guild:
+        sona += f"`{prefix} open [toki]`: toki li lon open pi toki sina la mi lukin ala e ona.\n"
+        sona += f"    - sina pana tu e toki sama la mi weka e ona.\n"
+        sona += (
+            f"`{prefix} sitelen [sitelen]`: sina toki pona ala la mi pana e sitelen.\n"
+        )
+        sona += f"`{prefix} weka [True|False]`: sina toki pona ala la mi weka e toki. sina wile ala e weka la\n"
     await ctx.respond(sona, ephemeral=ephemeral)

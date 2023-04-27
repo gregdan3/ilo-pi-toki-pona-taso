@@ -19,8 +19,6 @@ from tenpo.toki_pona_utils import is_toki_pona
 
 LOG = getLogger()
 
-# TODO: add to Guild/user config?
-
 
 async def in_checked_channel_guild(
     channel_id: int, category_id: Optional[int], guild_id: int
@@ -67,6 +65,13 @@ async def in_checked_channel(
     return False
 
 
+def startswith_ignorable(message: str, ignorable: list[str]):
+    for ignore in ignorable:
+        if message.startswith(ignore):
+            return True
+    return False
+
+
 class CogOTokiPonaTaso(Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -83,6 +88,10 @@ class CogOTokiPonaTaso(Cog):
             channel.category_id,  # type: ignore
             guild.id,
         ):
+            return
+
+        opens = await DB.get_opens(message.author.id)
+        if startswith_ignorable(message.content, opens):
             return
 
         if is_toki_pona(message.content):
