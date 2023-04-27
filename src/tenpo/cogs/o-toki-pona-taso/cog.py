@@ -125,8 +125,9 @@ class CogOTokiPonaTaso(Cog):
         guild, channel = package
 
         # TODO: configurable timeframes
-        # if not is_major_phase():
-        #     return
+        if not is_major_phase():
+            LOG.debug("Ignoring guild message; not event time ")
+            return
 
         if role := await get_guild_role(guild.id):
             if not user_has_role(cast(Member, message.author), role):
