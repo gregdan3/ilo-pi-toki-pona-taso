@@ -124,7 +124,9 @@ class CogOTokiPonaTaso(Cog):
         await message.add_reaction(react)
 
 
-async def should_check(message: Message) -> Optional[Tuple[Guild, Channel]]:
+async def should_check(
+    message: Message,
+) -> Optional[Tuple[Guild, MessageableGuildChannel]]:
     """Determine if a message is in a location and by a user worth checking for TPT
     Does not check rules or time
     Return message's guild, channel to check, or None if no check should be performed
