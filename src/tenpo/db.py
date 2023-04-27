@@ -67,9 +67,14 @@ class ConfigKey(enum.Enum):
 
     # guild only
     ROLE = "role"
-    ICON = "icon"
+    ICON = "icon"  # guild's singleton
 
     # both
+
+
+class IconConfigs(enum.Enum):
+    AUTHOR = "author"
+    EVENTS = "events"
 
 
 class Entity(Base):
@@ -104,11 +109,10 @@ class IconsBanners(Base):
     __tablename__ = "icons_banners"
     id = Column(UUID, primary_key=True, default=uuid.uuid4, unique=True, nullable=False)
     guild_id = Column(BigInteger, ForeignKey("entity.id"), nullable=False)
-    author_id = Column(BigInteger, nullable=True)
     name = Column(String, nullable=False)
     last_used = Column(DateTime, nullable=False)
     config = Column(mutable_json_type(dbtype=JSON, nested=True), nullable=True)
-    # TODO: phase, event, default
+
     icon = Column(LargeBinary, nullable=False)
     banner = Column(LargeBinary, nullable=True)
 
