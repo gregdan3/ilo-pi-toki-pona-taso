@@ -185,12 +185,25 @@ class TenpoDB:
     async def toggle_open(self, eid: int, open: str) -> bool:
         # TODO: is it better to extend the list in sqlalchemy_json?
         opens = await self.get_opens(eid)
-        if open in opens:
+        if is_in := open in opens:
             opens.remove(open)
         else:
             opens.append(open)
         await self.__set_config_item(eid, ConfigKey.OPENS, opens)
-        return open in opens
+        return is_in
+
+    async def get_role(self, eid: int) -> Optional[int]:
+        return await self.__get_config_item(eid, ConfigKey.ROLE)
+
+    async def set_role(self, eid: int, role: Optional[int]):
+        return await self.__set_config_item(eid, ConfigKey.ROLE, role)
+
+    async def toggle_role(self, eid: int, role: int) -> bool:
+        config_role = await self.get_role(eid)
+        is_same = role == config_role
+        to_assign = None if is_same else role
+        await self.set_role(eid, to_assign)
+        return is_same
 
     async def upsert_rule(
         self, id: int, ctype: Container, eid: int, exception: bool = False
