@@ -25,6 +25,7 @@ from tenpo.chat_utils import (
     CONTAINER_MAP,
     format_reacts,
     format_channel,
+    format_opens_user,
     get_discord_reacts,
     format_reacts_rules,
     format_rules_exceptions,
@@ -250,17 +251,23 @@ async def cmd_list_rules(ctx: ApplicationContext, actor: DiscordActor, ephemeral
     assert user
 
     is_guild = isinstance(actor, Guild)
-    rules_info = ""
+
+    blurbs = []
+
     rules, exceptions = await DB.list_rules(actor.id)
     rules_info = format_rules_exceptions(rules, exceptions)
+    blurbs.append(rules_info)
 
-    reacts_info = ""
     if not is_guild:
         reacts = await DB.get_reacts(actor.id)
         reacts_info = format_reacts_rules(reacts)
+        blurbs.append(reacts_info)
 
-    result = rules_info + "\n\n" + reacts_info
+        opens = await DB.get_opens(actor.id)
+        opens_info = format_opens_user(opens)
+        blurbs.append(opens_info)
 
+    result = "\n\n".join(blurbs)  # TODO: best order?
     await ctx.respond(result, ephemeral=ephemeral)
 
 
@@ -271,9 +278,11 @@ async def cmd_lawa_help(ctx: ApplicationContext, actor: DiscordActor, ephemeral:
     assert user
 
     is_guild = isinstance(actor, Guild)
+
     prefix = "/lawa"
     if is_guild:
         prefix = "/lawa_ma"
+
     sona = "mi __ilo pi toki pona taso__. sina toki pona ala la mi pona e ona. o lukin e ken mi:\n"
 
     sona += f"`{prefix} sona`: mi pana e toki ni.\n"

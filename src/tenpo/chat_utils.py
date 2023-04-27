@@ -1,3 +1,4 @@
+# TODO: entire module is a bit mixed between "user facing" format and "internal" format. fix it.
 # STL
 import re
 from typing import List
@@ -79,6 +80,10 @@ def codeblock_wrap(s: str) -> str:
 ```"""
 
 
+def code_wrap(s: str) -> str:
+    return f"`{s}`"
+
+
 def format_reacts(reacts: list[str], per_line: int = 8) -> str:
     formatted_reacts = ""
     for i, react in enumerate(reacts):
@@ -89,6 +94,18 @@ def format_reacts(reacts: list[str], per_line: int = 8) -> str:
             formatted_reacts += " "
 
     return formatted_reacts.rstrip()
+
+
+def format_opens(opens: list[str]) -> str:
+    opens = [code_wrap(open) for open in opens]  # TODO: is codeblock fine?
+    return ", ".join(opens)
+
+
+def format_opens_user(opens: list[str]) -> str:
+    info = "open pi toki sina li ni la mi lukin ala: \n"
+    f_opens = format_opens(opens)
+
+    return info + f_opens
 
 
 def format_channel(id: int):
