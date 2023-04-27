@@ -44,15 +44,6 @@ Base = declarative_base()
 JSONPrimitive = str | int | bool | NoneType
 JSONType = JSONPrimitive | List[JSONPrimitive] | Dict[JSONPrimitive, JSONPrimitive]
 
-"""
-everything is divided such that I can use `back_populates` because otherwise the interface is misery
-it would require me to safety check the existence of users/guilds at every instance i might create one
-so instead, let the db do that for me
-
-it does mean i have two nearly identical tables that serve nearly identical purposes, which leads to some code duplication
-some of that duplication is fixable; others are intentionaly different
-"""
-
 
 class Action(enum.Enum):
     INSERT = "INSERT"
