@@ -185,7 +185,7 @@ class TenpoDB:
         else:
             opens.append(open)
         await self.__set_config_item(eid, ConfigKey.OPENS, opens)
-        return is_in
+        return not is_in
 
     async def get_role(self, eid: int) -> Optional[int]:
         return await self.__get_config_item(eid, ConfigKey.ROLE)
