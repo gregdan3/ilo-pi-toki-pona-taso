@@ -1,9 +1,9 @@
 # STL
 import random
-from typing import Tuple, Optional
+from typing import Tuple, Optional, cast
 
 # PDM
-from discord import Guild, Thread
+from discord import Guild, Member, Thread
 from discord.ext import commands
 from discord.message import Message
 from discord.ext.commands import Cog
@@ -15,9 +15,21 @@ from tenpo.__main__ import DB
 from tenpo.log_utils import getLogger
 from tenpo.chat_utils import DEFAULT_REACTS
 from tenpo.phase_utils import is_major_phase
+from tenpo.cogs.rules.cog import MessageableGuildChannel
 from tenpo.toki_pona_utils import is_toki_pona
 
 LOG = getLogger()
+
+
+async def get_guild_role(guild_id: int):
+    g_role = await DB.get_role(guild_id)
+    return g_role
+
+
+def user_has_role(user: Member, role: int) -> bool:
+    return not not user.get_role(role)
+    # yes really, faster than bool for no reason
+    # plus it's funny
 
 
 async def in_checked_channel_guild(
@@ -79,48 +91,64 @@ class CogOTokiPonaTaso(Cog):
     @commands.Cog.listener("on_message")
     async def o_toki_pona_taso(self, message: Message):
         if not (package := await should_check(message)):
+            LOG.debug("Ignoring user message; preconditions failed")
             return
         guild, channel = package
 
         if not await in_checked_channel_user(
             message.author.id,
-            channel.id,  # type: ignore
-            channel.category_id,  # type: ignore
+            channel.id,
+            channel.category_id,
             guild.id,
         ):
+            LOG.debug("Ignoring user message; not in configured channel")
             return
 
         opens = await DB.get_opens(message.author.id)
         if startswith_ignorable(message.content, opens):
+            LOG.debug("Ignoring user message; starts with ignorable")
             return
 
         if is_toki_pona(message.content):
+            LOG.debug("Ignoring user message; is toki pona")
             return
 
         react = await get_react(message.author.id)
+        LOG.debug("Reacting %s to user message" % react)
         await message.add_reaction(react)
 
     @commands.Cog.listener("on_message")
     async def tenpo_la_o_toki_pona_taso(self, message: Message):
         if (package := await should_check(message)) is None:
+            LOG.debug("Ignoring guild message; preconditions failed")
             return
         guild, channel = package
 
-        if not is_major_phase():
-            return
+        # TODO: configurable timeframes
+        # if not is_major_phase():
+        #     return
+
+        if role := await get_guild_role(guild.id):
+            if not user_has_role(cast(Member, message.author), role):
+                LOG.debug("Ignoring guild message; no user role")
+                return
 
         if not await in_checked_channel_guild(
-            channel.id,  # type: ignore
-            channel.category_id,  # type: ignore
+            channel.id,
+            channel.category_id,
             guild.id,
         ):
+            LOG.debug("Ignoring guild message; not in configured channel")
             return
 
         if is_toki_pona(message.content):
+            LOG.debug("Ignoring guild message; is toki pona")
             return
 
         react = await get_react(message.author.id)
+        LOG.debug("Reacting %s to guild message" % react)
         # guild can't choose their own reacts... TODO: ?
+        # imo no, users should be able to customize their experience always
         await message.add_reaction(react)
 
 
@@ -128,7 +156,7 @@ async def should_check(
     message: Message,
 ) -> Optional[Tuple[Guild, MessageableGuildChannel]]:
     """Determine if a message is in a location and by a user worth checking for TPT
-    Does not check rules or time
+    Does not check any database-derived rules
     Return message's guild, channel to check, or None if no check should be performed
     """
     if message.author.bot:

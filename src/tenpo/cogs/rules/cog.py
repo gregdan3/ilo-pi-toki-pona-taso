@@ -2,6 +2,7 @@
 import emoji
 from discord import (
     Cog,
+    Role,
     User,
     Guild,
     Member,
@@ -25,6 +26,7 @@ from tenpo.chat_utils import (
     CONTAINER_MAP,
     format_reacts,
     format_channel,
+    format_role_info,
     format_opens_user,
     get_discord_reacts,
     format_reacts_rules,
@@ -58,6 +60,19 @@ class CogRules(Cog):
         actor = ctx.guild
         assert actor
         await cmd_list_rules(ctx, actor, ephemeral=False)
+
+    @guild_rules.command(name="poki", description="toki pona taso o tawa jan poki")
+    @option(name="poki", description="mi lukin e poki ni taso")
+    @commands.has_permissions(administrator=True)
+    async def guild_toggle_role(self, ctx: ApplicationContext, poki: Role):
+        actor = ctx.guild
+        assert actor
+
+        result = await DB.toggle_role(actor.id, poki.id)
+        if result:
+            await ctx.respond("mi lukin taso e poki __%s__" % poki.name)
+            return
+        await ctx.respond("mi weka e poki __%s__ la mi lukin e ale" % poki.name)
 
     @guild_rules.command(name="tomo", description="o ante e lawa tomo")
     @option(name="tomo", description="lon tomo seme")
@@ -267,6 +282,13 @@ async def cmd_list_rules(ctx: ApplicationContext, actor: DiscordActor, ephemeral
         opens_info = format_opens_user(opens)
         blurbs.append(opens_info)
 
+    if is_guild:
+        role_id = await DB.get_role(actor.id)
+        role = guild.get_role(role_id)
+        if role:  # safety check in case configured role is deleted
+            role_info = format_role_info(role.name)
+            blurbs.append(role_info)
+
     result = "\n\n".join(blurbs)  # TODO: best order?
     await ctx.respond(result, ephemeral=ephemeral)
 
@@ -298,4 +320,6 @@ async def cmd_lawa_help(ctx: ApplicationContext, actor: DiscordActor, ephemeral:
             f"`{prefix} sitelen [sitelen]`: sina toki pona ala la mi pana e sitelen.\n"
         )
         sona += f"`{prefix} weka [True|False]`: sina toki pona ala la mi weka e toki. sina wile ala e weka la\n"
+    if is_guild:
+        sona += f"`{prefix} poki [poki]`: sina pana e poki tawa ma la mi lukin taso e jan pi poki ni."
     await ctx.respond(sona, ephemeral=ephemeral)

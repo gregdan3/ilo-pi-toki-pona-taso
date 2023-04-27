@@ -108,6 +108,11 @@ def format_opens_user(opens: list[str]) -> str:
     return info + f_opens
 
 
+def format_role_info(role_name: str):
+    info = "mi lukin taso e jan pi poki __%s__" % role_name
+    return info
+
+
 def format_channel(id: int):
     """categories are channels according to pycord and they use the same escape"""
     return f"<#{id}>"

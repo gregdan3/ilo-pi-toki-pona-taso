@@ -135,11 +135,6 @@ class TenpoDB:
         await self.s.close()
         await self.engine.dispose()
 
-    async def __insert_entity(self, eid: int):
-        new_user = Entity(id=eid)
-        self.s.add(new_user)
-        await self.s.commit()
-
     async def __get_entity(self, eid: int) -> Entity:
         stmt = select(Entity).where(Entity.id == eid)
         result = await self.s.execute(stmt)
@@ -203,7 +198,7 @@ class TenpoDB:
         is_same = role == config_role
         to_assign = None if is_same else role
         await self.set_role(eid, to_assign)
-        return is_same
+        return not is_same  # true = wrote, false = deleted
 
     async def upsert_rule(
         self, id: int, ctype: Container, eid: int, exception: bool = False
