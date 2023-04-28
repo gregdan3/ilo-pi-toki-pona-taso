@@ -79,7 +79,7 @@ class CogRules(Cog):
     async def guild_toggle_disabled(self, ctx: ApplicationContext):
         actor = ctx.guild
         assert actor
-        return await cmd_toggle_disabled(ctx, actor, ephemeral=True)
+        return await cmd_toggle_disabled(ctx, actor, ephemeral=False)
 
     @guild_rules.command(name="tomo", description="o ante e lawa tomo")
     @option(name="tomo", description="lon tomo seme")
@@ -190,9 +190,11 @@ class CogRules(Cog):
         assert user
         result = await DB.toggle_open(user.id, toki)
         if not result:
-            await ctx.respond("open pi toki sina li ni la mi lukin ala: __%s__" % toki)
+            await ctx.respond(
+                "open pi toki sina li ni la mi lukin ala: __%s__" % toki, ephemeral=True
+            )
             return
-        await ctx.respond("mi kama lukin e toki open ni: __%s__" % toki)
+        await ctx.respond("mi kama lukin e toki open ni: __%s__" % toki, ephemeral=True)
 
     @user_rules.command(
         name="sitelen", description="sina toki pona ala la mi pana e sitelen seme"
@@ -205,7 +207,9 @@ class CogRules(Cog):
 
         if not sitelen:
             await DB.set_reacts(user.id, [])
-            await ctx.respond("sina pana e sitelen ala la mi weka e sitelen ale")
+            await ctx.respond(
+                "sina pana e sitelen ala la mi weka e sitelen ale", ephemeral=True
+            )
             return
 
         emojis = [e["emoji"] for e in emoji.emoji_list(sitelen)]
@@ -213,7 +217,8 @@ class CogRules(Cog):
         all_reacts = emojis + reacts
         if not all_reacts:
             await ctx.respond(
-                "sina pana e sitelen, taso mi sona ala e ona. ona li pona ala pona?"
+                "sina pana e sitelen, taso mi sona ala e ona. ona li pona ala pona?",
+                ephemeral=True,
             )
             return
         await DB.set_reacts(user.id, all_reacts)
@@ -221,7 +226,8 @@ class CogRules(Cog):
         formatted_reacts = format_reacts(all_reacts)
         await ctx.respond(
             "sina toki pona ala la mi pana e sitelen wan pi ni ale:\n%s"
-            % formatted_reacts
+            % formatted_reacts,
+            ephemeral=True,
         )
 
 
