@@ -70,6 +70,7 @@ class ConfigKey(enum.Enum):
     ICON = "icon"  # guild's singleton
 
     # both
+    DISABLED = "disabled"
 
 
 class IconConfigs(enum.Enum):
@@ -186,6 +187,17 @@ class TenpoDB:
 
     async def get_reacts(self, eid: int) -> List[str]:
         return cast(List[str], await self.__get_config_item(eid, ConfigKey.REACTS))
+
+    async def set_disabled(self, eid: int, disabled: bool):
+        await self.__set_config_item(eid, ConfigKey.DISABLED, disabled)
+
+    async def get_disabled(self, eid: int) -> bool:
+        return cast(bool, await self.__get_config_item(eid, ConfigKey.DISABLED))
+
+    async def toggle_disabled(self, eid: int) -> bool:
+        to_set = not await self.get_disabled(eid)
+        await self.set_disabled(eid, to_set)
+        return to_set
 
     async def get_opens(self, eid: int):
         opens = (

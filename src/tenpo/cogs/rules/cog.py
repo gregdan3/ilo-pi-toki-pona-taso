@@ -74,6 +74,13 @@ class CogRules(Cog):
             return
         await ctx.respond("mi weka e poki __%s__ la mi lukin e ale" % poki.name)
 
+    @guild_rules.command(name="lukin", description="mi o lukin ala lukin?")
+    @commands.has_permissions(administrator=True)
+    async def guild_toggle_disabled(self, ctx: ApplicationContext):
+        actor = ctx.guild
+        assert actor
+        return await cmd_toggle_disabled(ctx, actor, ephemeral=True)
+
     @guild_rules.command(name="tomo", description="o ante e lawa tomo")
     @option(name="tomo", description="lon tomo seme")
     @option(name="ala", description="tomo li ken toki ante lon ale")
@@ -130,6 +137,12 @@ class CogRules(Cog):
         actor = ctx.user
         assert actor
         await cmd_list_rules(ctx, actor, ephemeral=True)
+
+    @user_rules.command(name="lukin", description="mi o lukin ala lukin?")
+    async def user_toggle_disabled(self, ctx: ApplicationContext):
+        actor = ctx.user
+        assert actor
+        return await cmd_toggle_disabled(ctx, actor, ephemeral=True)
 
     @user_rules.command(name="tomo", description="o ante e lawa tomo")
     @option(name="tomo", description="lon tomo seme")
@@ -230,6 +243,14 @@ async def cmd_toggle_rule(
     await ctx.respond(response, ephemeral=ephemeral)
 
 
+async def cmd_toggle_disabled(
+    ctx: ApplicationContext, actor: DiscordActor, ephemeral: bool
+):
+    result = await DB.toggle_disabled(actor.id)
+    resp = "mi kama lukin ala" if result else "mi kama lukin"
+    await ctx.respond(resp, ephemeral=ephemeral)
+
+
 async def build_rule_resp(
     container: DiscordContainer,
     ctype: Container,
@@ -268,6 +289,11 @@ async def cmd_list_rules(ctx: ApplicationContext, actor: DiscordActor, ephemeral
     is_guild = isinstance(actor, Guild)
 
     blurbs = []
+
+    disabled = await DB.get_disabled(actor.id)
+    if disabled:
+        disabled_info = "**mi lukin ala e toki sina. lawa li lon tawa sona.**"
+        blurbs.append(disabled_info)
 
     rules, exceptions = await DB.list_rules(actor.id)
     rules_info = format_rules_exceptions(rules, exceptions)
@@ -309,10 +335,11 @@ async def cmd_lawa_help(ctx: ApplicationContext, actor: DiscordActor, ephemeral:
 
     sona += f"`{prefix} sona`: mi pana e toki ni.\n"
     sona += f"`{prefix} ale`: mi pana e lawa ale sina.\n"
+    sona += f"`{prefix} lukin`: mi lukin ala. sin la mi lukin.\n"
     sona += f"`{prefix} [tomo|kulupu|ma] (ala)`: mi lukin e ijo.\n"
-    sona += f"    - sina toki pona ala lon ijo la mi pona e ona.\n"
-    sona += f"    - `ala` la mi lukin ala e ijo. ijo ni li ken lon insa pi ijo pi toki pona.\n"
-    sona += f"    - sina pana tu e ijo sama la mi weka e lukin.\n"
+    sona += f"    `-` sina toki pona ala lon ijo la mi pona e ona.\n"
+    sona += f"    `-` `ala` la mi lukin ala e ijo. ijo ni li ken lon insa pi ijo pi toki pona.\n"
+    sona += f"    `-` sina pana tu e ijo sama la mi weka e lukin.\n"
     if not is_guild:
         sona += f"`{prefix} open [toki]`: toki li lon open pi toki sina la mi lukin ala e ona.\n"
         sona += f"    - sina pana tu e toki sama la mi weka e ona.\n"
@@ -321,5 +348,5 @@ async def cmd_lawa_help(ctx: ApplicationContext, actor: DiscordActor, ephemeral:
         )
         sona += f"`{prefix} weka [True|False]`: sina toki pona ala la mi weka e toki. sina wile ala e weka la\n"
     if is_guild:
-        sona += f"`{prefix} poki [poki]`: sina pana e poki tawa ma la mi lukin taso e jan pi poki ni."
+        sona += f"`{prefix} poki [poki]`: sina pana e poki tawa ma la mi lukin taso e jan pi poki ni.\n"
     await ctx.respond(sona, ephemeral=ephemeral)

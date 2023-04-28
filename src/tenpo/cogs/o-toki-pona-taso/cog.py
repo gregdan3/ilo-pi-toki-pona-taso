@@ -32,6 +32,11 @@ def user_has_role(user: Member, role: int) -> bool:
     # plus it's funny
 
 
+async def has_disabled(eid: int):
+    check = await DB.get_disabled(eid)
+    return check
+
+
 async def in_checked_channel_guild(
     channel_id: int, category_id: Optional[int], guild_id: int
 ):
@@ -95,6 +100,10 @@ class CogOTokiPonaTaso(Cog):
             return
         guild, channel = package
 
+        if await has_disabled(message.author.id):
+            LOG.debug("Ignoring user message; user has disabled")
+            return
+
         if not await in_checked_channel_user(
             message.author.id,
             channel.id,
@@ -124,9 +133,13 @@ class CogOTokiPonaTaso(Cog):
             return
         guild, channel = package
 
+        if await has_disabled(guild.id):
+            LOG.debug("Ignoring guild message; guild has disabled")
+            return
+
         # TODO: configurable timeframes
         if not is_major_phase():
-            LOG.debug("Ignoring guild message; not event time ")
+            LOG.debug("Ignoring guild message; not event time")
             return
 
         if role := await get_guild_role(guild.id):
@@ -173,10 +186,6 @@ async def should_check(
 
     # if a message is ever sent in a non-channel, how
     # if not channel:
-    #     return
-
-    # redundant to guild check, but pyright will errantly complain
-    # if not isinstance(channel, MessageableGuildChannel):
     #     return
 
     if isinstance(channel, Thread):
