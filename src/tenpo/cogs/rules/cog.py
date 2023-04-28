@@ -102,7 +102,7 @@ class CogRules(Cog):
     async def guild_toggle_category(
         self,
         ctx: ApplicationContext,
-        kulupu: MessageableGuildChannel,
+        kulupu: CategoryChannel,
         ala: bool = False,
     ):
         actor = ctx.guild
