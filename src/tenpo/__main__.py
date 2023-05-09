@@ -38,16 +38,9 @@ if DEBUG_GUILDS:
     DEBUG_GUILDS = [int(n) for n in DEBUG_GUILDS.split(",") if n and n.isdigit()]
 
 
-class TenpoBot(commands.Bot):
-    def __init__(self, db, *args, **kwargs):
-        self.db: TenpoDB = db  # it's initialized async
-        super().__init__(*args, **kwargs)
-
-
 LOOP = asyncio.new_event_loop()
 DB = asyncio.run(TenpoDB(database_file=DB_FILE))
-BOT = TenpoBot(
-    db=DB,
+BOT = commands.Bot(
     loop=LOOP,
     command_prefix="/",
     intents=Intents.all(),

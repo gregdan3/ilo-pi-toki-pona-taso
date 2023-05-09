@@ -12,7 +12,7 @@ from discord.ext.commands import Cog
 from discord.commands.context import ApplicationContext
 
 # LOCAL
-from tenpo.__main__ import DB, TenpoBot
+from tenpo.__main__ import DB
 from tenpo.log_utils import getLogger
 from tenpo.image_utils import ImageDict, make_filename, download_image
 from tenpo.autocomplete_utils import autocomplete_filter
@@ -32,7 +32,7 @@ async def icon_autocomplete(ctx: AutocompleteContext):
 
 class CogIcons(Cog):
     def __init__(self, bot):
-        self.bot: TenpoBot = bot
+        self.bot: commands.Bot = bot
 
     icon = SlashCommandGroup(
         name="icon", description="Set, upload, and delete server icons and banners"
@@ -127,7 +127,7 @@ class CogIcons(Cog):
 
 
 async def _upload_icon_banner(
-    bot: TenpoBot,
+    bot: commands.Bot,
     ctx: ApplicationContext,
     name: str,
     icon_url: str,

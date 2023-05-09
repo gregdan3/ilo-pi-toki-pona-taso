@@ -19,7 +19,7 @@ from discord.commands.context import ApplicationContext
 
 # LOCAL
 from tenpo.db import Action, Container
-from tenpo.__main__ import DB, TenpoBot
+from tenpo.__main__ import DB
 from tenpo.log_utils import getLogger
 from tenpo.chat_utils import (
     ACTION_MAP,
@@ -44,7 +44,7 @@ DiscordActor = Member | User | Guild
 # TODO:: generate these functions
 class CogRules(Cog):
     def __init__(self, bot):
-        self.bot: TenpoBot = bot
+        self.bot: commands.Bot = bot
 
     guild_rules = SlashCommandGroup(name="lawa_ma")
 
