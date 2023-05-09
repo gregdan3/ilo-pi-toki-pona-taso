@@ -80,6 +80,11 @@ def datetime_to_emoji(t: datetime) -> str:
     return emoji
 
 
+def current_emoji() -> str:
+    now = now_skyfield()
+    return datetime_to_emoji(now)
+
+
 def degree_in_major_phase(d: numpy.float64) -> bool:
     """return True in the 24 hour period after a full moon or new moon begins given some `d` between 0 and 360
     following skyfield's contract, ~0-30 are new moons and ~180-210 are full moons"""
