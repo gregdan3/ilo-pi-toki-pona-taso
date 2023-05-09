@@ -68,6 +68,7 @@ class ConfigKey(enum.Enum):
     # guild only
     ROLE = "role"
     ICON = "icon"  # guild's singleton
+    CALENDAR = "calendar"
 
     # both
     DISABLED = "disabled"
@@ -226,6 +227,32 @@ class TenpoDB:
         is_same = role == config_role
         to_assign = None if is_same else role
         await self.set_role(eid, to_assign)
+        return not is_same  # true = wrote, false = deleted
+
+    async def get_calendar(self, eid: int) -> Optional[int]:
+        return await self.__get_config_item(eid, ConfigKey.CALENDAR)
+
+    async def set_calendar(self, eid: int, calendar: Optional[int]):
+        return await self.__set_config_item(eid, ConfigKey.CALENDAR, calendar)
+
+    async def get_calendars(self) -> List[int]:
+        # in context, the controlling
+        async with self.session() as s:
+            stmt = (
+                select(Entity.id, Entity.config[ConfigKey.CALENDAR.value])
+                .where(Entity.config.has_key(ConfigKey.CALENDAR.value))
+                .where(Entity.config[ConfigKey.CALENDAR.value] != None)
+            )
+            result = await s.execute(stmt)
+            entities_with_calendar = result.all()
+        calendars = [calendar for _, calendar in entities_with_calendar]
+        return calendars
+
+    async def toggle_calendar(self, eid: int, calendar: int) -> bool:
+        config_calendar = await self.get_calendar(eid)
+        is_same = calendar == config_calendar
+        to_assign = None if is_same else calendar
+        await self.set_calendar(eid, to_assign)
         return not is_same  # true = wrote, false = deleted
 
     async def __upsert_rule(
