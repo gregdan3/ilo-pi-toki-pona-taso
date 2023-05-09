@@ -74,6 +74,23 @@ class CogRules(Cog):
             return
         await ctx.respond("mi weka e poki __%s__ la mi lukin e ale" % poki.name)
 
+    @guild_rules.command(name="tomo_tenpo", description="mun tenpo o lon tomo seme")
+    @option(name="tomo", description="tomo seme la nimi o tenpo")
+    @commands.has_permissions(administrator=True)
+    async def guild_toggle_calendar(
+        self, ctx: ApplicationContext, tomo: MessageableGuildChannel
+    ):
+        actor = ctx.guild
+        assert actor
+
+        result = await DB.toggle_role(actor.id, tomo.id)
+        if result:
+            await ctx.respond("mi tenpo e tomo __%s__ lon kama" % tomo.name)
+            return
+        await ctx.respond(
+            "mi kama ante ala e nimi pi tomo __%s__ la sina ken ante e ona" % tomo.name
+        )
+
     @guild_rules.command(name="lukin", description="mi o lukin ala lukin?")
     @commands.has_permissions(administrator=True)
     async def guild_toggle_disabled(self, ctx: ApplicationContext):
