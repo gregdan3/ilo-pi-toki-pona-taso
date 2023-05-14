@@ -39,7 +39,7 @@ if DEBUG_GUILDS:
 
 
 LOOP = asyncio.new_event_loop()
-DB = asyncio.run(TenpoDB(database_file=DB_FILE))
+DB = LOOP.run_until_complete(TenpoDB(database_file=DB_FILE))
 BOT = commands.Bot(
     loop=LOOP,
     command_prefix="/",
