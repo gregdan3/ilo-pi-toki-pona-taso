@@ -1,7 +1,6 @@
 # STL
 import enum
 import uuid
-from types import NoneType
 from typing import Set, Dict, List, Tuple, Optional, cast
 from datetime import datetime
 from contextlib import asynccontextmanager
@@ -42,7 +41,7 @@ from tenpo.log_utils import getLogger
 
 LOG = getLogger()
 Base = declarative_base()
-JSONPrimitive = str | int | bool | NoneType
+JSONPrimitive = Optional[str | int | bool]
 JSONType = JSONPrimitive | List[JSONPrimitive] | Dict[JSONPrimitive, JSONPrimitive]
 
 
@@ -64,6 +63,7 @@ class ConfigKey(enum.Enum):
     # user only
     REACTS = "reacts"
     OPENS = "opens"
+    RESPONSE = "response"
 
     # guild only
     ROLE = "role"
