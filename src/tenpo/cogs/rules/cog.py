@@ -1,24 +1,12 @@
 # PDM
 import emoji
-from discord import (
-    Cog,
-    Role,
-    User,
-    Guild,
-    Member,
-    TextChannel,
-    ForumChannel,
-    StageChannel,
-    VoiceChannel,
-    CategoryChannel,
-    SlashCommandGroup,
-    option,
-)
+from discord import Cog, Role, Guild, CategoryChannel, SlashCommandGroup, option
 from discord.ext import commands
 from discord.commands.context import ApplicationContext
 
 # LOCAL
 from tenpo.db import Action, Container
+from tenpo.types import DiscordActor, DiscordContainer, MessageableGuildChannel
 from tenpo.__main__ import DB
 from tenpo.log_utils import getLogger
 from tenpo.chat_utils import (
@@ -35,13 +23,8 @@ from tenpo.chat_utils import (
 
 LOG = getLogger()
 
-# can't use discord.guild.GuildChannel because it includes categories
-MessageableGuildChannel = TextChannel | ForumChannel | StageChannel | VoiceChannel
-DiscordContainer = Guild | CategoryChannel | MessageableGuildChannel
-DiscordActor = Member | User | Guild
 
-
-# TODO:: generate these functions
+# TODO: generate these functions
 class CogRules(Cog):
     def __init__(self, bot):
         self.bot: commands.Bot = bot
