@@ -38,14 +38,13 @@ if DEBUG_GUILDS:
     DEBUG_GUILDS = [int(n) for n in DEBUG_GUILDS.split(",") if n and n.isdigit()]
 
 
-LOOP = asyncio.new_event_loop()
-DB = LOOP.run_until_complete(TenpoDB(database_file=DB_FILE))
 BOT = commands.Bot(
-    loop=LOOP,
     command_prefix="/",
     intents=Intents.all(),
     debug_guilds=DEBUG_GUILDS,
 )
+DB: TenpoDB = BOT.loop.run_until_complete(TenpoDB(database_file=DB_FILE))
+# use bot's loop instead of our own so tasks work as intended
 
 
 @BOT.event
