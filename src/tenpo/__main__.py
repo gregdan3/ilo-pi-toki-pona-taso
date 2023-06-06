@@ -1,6 +1,5 @@
 # STL
 import os
-import asyncio
 import logging
 from typing import Any
 
@@ -37,10 +36,16 @@ DEBUG_GUILDS = load_envvar("DEBUG_GUILDS", "")
 if DEBUG_GUILDS:
     DEBUG_GUILDS = [int(n) for n in DEBUG_GUILDS.split(",") if n and n.isdigit()]
 
-
+INTENTS = Intents(
+    guilds=True,  # get channel, many guild attrs
+    guild_messages=True,  # we don't support dms, for now
+    guild_reactions=True,  # only `on_reaction_add` below
+    message_content=True,  # needed to evaluate: ona li toki ala toki pona
+    webhooks=True,  # pluralkit
+)
 BOT = commands.Bot(
     command_prefix="/",
-    intents=Intents.all(),
+    intents=INTENTS,
     debug_guilds=DEBUG_GUILDS,
 )
 DB: TenpoDB = BOT.loop.run_until_complete(TenpoDB(database_file=DB_FILE))
