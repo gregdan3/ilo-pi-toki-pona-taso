@@ -1,3 +1,6 @@
+# TODO: REFACTOR: Implement rules logic in DB layer as singular function
+# TODO: REFACTOR: Divide DB interface based on purpose i.e. entity evaluation, image handling, calendar handling, etc
+#
 # STL
 import enum
 import uuid
@@ -236,16 +239,14 @@ class TenpoDB:
         return await self.__set_config_item(eid, ConfigKey.CALENDAR, calendar)
 
     async def get_calendars(self) -> List[int]:
-        # in context, the controlling
         async with self.session() as s:
-            stmt = (
-                select(Entity.id, Entity.config[ConfigKey.CALENDAR.value])
-                .where(Entity.config.has_key(ConfigKey.CALENDAR.value))
-                .where(Entity.config[ConfigKey.CALENDAR.value] != None)
+            stmt = select(Entity.id, Entity.config[ConfigKey.CALENDAR.value]).where(
+                Entity.config[ConfigKey.CALENDAR.value].isnot(None)
             )
             result = await s.execute(stmt)
             entities_with_calendar = result.all()
-        calendars = [calendar for _, calendar in entities_with_calendar]
+        calendars = [calendar for _, calendar in entities_with_calendar if calendar]
+        # TODO: fix stmt to actually filter at DB side
         return calendars
 
     async def toggle_calendar(self, eid: int, calendar: int) -> bool:
