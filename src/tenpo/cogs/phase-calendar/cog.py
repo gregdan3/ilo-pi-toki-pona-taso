@@ -19,7 +19,7 @@ class CogPhaseCalendar(Cog):
         self.bot: Bot = bot
         self.moon_calendar.start()
 
-    @tasks.loop(seconds=60.0)
+    @tasks.loop(minutes=30)
     async def moon_calendar(self):
         LOG.info(type(DB))
         LOG.info("Checking moon calendar")
