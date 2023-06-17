@@ -66,7 +66,7 @@ class CogRules(Cog):
         actor = ctx.guild
         assert actor
 
-        result = await DB.toggle_role(actor.id, tomo.id)
+        result = await DB.toggle_calendar(actor.id, tomo.id)
         if result:
             await ctx.respond("mi tenpo e tomo __%s__ lon kama" % tomo.name)
             return
