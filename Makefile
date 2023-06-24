@@ -27,5 +27,8 @@ stop:
 down:
 	${SUB} down
 
+push:
+	${SUB} push
+
 logs:
 	${SUB} logs
