@@ -2,7 +2,7 @@
 version: "3.8"
 services:
   bot:
-    image: "gregdan3/ilo-pi-toki-pona-taso:latest"
+    image: "gregdan3/ilo-pi-toki-pona-taso:${VERSION:-latest}"
     build:
       context: "."
       dockerfile: "Dockerfile"
