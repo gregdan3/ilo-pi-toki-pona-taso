@@ -6,7 +6,6 @@ services:
     build:
       context: "."
       dockerfile: "Dockerfile"
-    container_name: "tenpo"
     environment:
       DISCORD_TOKEN: "${DISCORD_TOKEN}"
       LOG_LEVEL: "${LOG_LEVEL}"
