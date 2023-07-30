@@ -8,7 +8,8 @@ test:
 	pdm run pytest -vvrP tests
 
 dev:
-	pdm run nvim src/tenpo/__main__.py
+	pdm run ${EDITOR} src/tenpo/__main__.py
+
 local:
 	pdm run python -m tenpo
 
