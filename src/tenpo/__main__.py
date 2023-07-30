@@ -41,7 +41,6 @@ INTENTS = Intents(
     guild_messages=True,  # we don't support dms, for now
     guild_reactions=True,  # only `on_reaction_add` below
     message_content=True,  # needed to evaluate: ona li toki ala toki pona
-    webhooks=True,  # pluralkit
 )
 BOT = commands.Bot(
     command_prefix="/",
