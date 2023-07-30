@@ -232,6 +232,12 @@ class TenpoDB:
         await self.set_role(eid, to_assign)
         return not is_same  # true = wrote, false = deleted
 
+    async def get_response(self, eid: int) -> Optional[str]:
+        return await self.__get_config_item(eid, ConfigKey.RESPONSE)
+
+    async def set_response(self, eid: int, response: str):
+        return await self.__set_config_item(eid, ConfigKey.RESPONSE, response)
+
     async def get_calendar(self, eid: int) -> Optional[int]:
         return await self.__get_config_item(eid, ConfigKey.CALENDAR)
 
