@@ -2,7 +2,7 @@
 ILO=docker compose
 
 init:
-	pdm install
+	pdm sync --dev
 
 test:
 	pdm run pytest -vvrP tests
