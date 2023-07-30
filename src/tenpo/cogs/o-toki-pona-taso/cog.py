@@ -186,9 +186,9 @@ async def should_check(message: Message) -> bool:
         return False
 
     # if a message is ever sent in a non-channel, how
-    channel = message.channel
-    if not channel:
-        return False
+    # channel = message.channel
+    # if not channel:
+    #     return False
 
     return True
 
