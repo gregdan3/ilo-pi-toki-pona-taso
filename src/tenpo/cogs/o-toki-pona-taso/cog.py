@@ -6,6 +6,7 @@ from typing import Tuple, Optional, cast
 from discord import Guild, Member, Thread
 from discord.ext import commands
 from discord.message import Message
+from discord.reaction import Reaction
 from discord.ext.commands import Cog
 from discord.types.channel import Channel
 
@@ -13,7 +14,7 @@ from discord.types.channel import Channel
 from tenpo.db import Container
 from tenpo.__main__ import DB
 from tenpo.log_utils import getLogger
-from tenpo.chat_utils import DEFAULT_REACTS
+from tenpo.chat_utils import DEFAULT_REACTS, codeblock_wrap
 from tenpo.phase_utils import is_major_phase
 from tenpo.cogs.rules.cog import MessageableGuildChannel
 from tenpo.toki_pona_utils import is_toki_pona
@@ -106,9 +107,7 @@ class CogOTokiPonaTaso(Cog):
             LOG.debug("Ignoring message; is toki pona")
             return
 
-        react = await get_react(message.author.id)
-        LOG.debug("Reacting %s to user message" % react)
-        await message.add_reaction(react)
+        await respond(message)
 
 
 async def should_react_user(message: Message) -> bool:
@@ -194,8 +193,40 @@ async def should_check(message: Message) -> bool:
     return True
 
 
+async def respond(message: Message):
+    response_type = await DB.get_response(message.author.id)
+    await RESPONSE_MAP[response_type](message)
+
+    # react = await get_react(message.author.id)
+    # LOG.debug("Reacting %s to user message" % react)
+    # await message.add_reaction(react)
+
+
+async def react_to_msg(message: Message):
+    uid = message.author.id
+    react = await get_react(uid)
+    LOG.debug("Reacting %s to user message" % react)
+    await message.add_reaction(react)
+
+
+async def delete_msg(message: Message):
+    if not (dm := message.author.dm_channel):
+        dm = await message.author.create_dm()
+    LOG.debug("Deleting user message")
+    await message.delete(reason="ona o toki pona taso")
+    await dm.send(
+        f"sina toki pona ala la mi weka e toki sina ni: \n\n{codeblock_wrap(message.content)}\n\nsina wile ala e weka la o kepeken `/lawa nasin`"
+    )
+
+
 async def get_react(eid: int):
     reacts = await DB.get_reacts(eid)
     if reacts:
         return random.choice(reacts)
     return random.choice(DEFAULT_REACTS)
+
+
+RESPONSE_MAP = {
+    "sitelen": react_to_msg,
+    "weka": delete_msg,
+}
