@@ -144,6 +144,16 @@ class CogRules(Cog):
         assert actor
         return await cmd_toggle_disabled(ctx, actor, ephemeral=True)
 
+    @user_rules.command(name="nasin", description="sina toki pona ala la mi o seme?")
+    @option(name="nasin", choices=["sitelen", "weka"])
+    async def user_set_response(self, ctx: ApplicationContext, nasin: str):
+        actor = ctx.user
+        assert actor
+        await DB.set_response(actor.id, nasin)
+        await ctx.respond(
+            f"sina toki pona ala la mi __{nasin}__ e toki", ephemeral=True
+        )
+
     @user_rules.command(name="tomo", description="o ante e lawa tomo")
     @option(name="tomo", description="lon tomo seme")
     @option(name="ala", description="tomo li ken toki pona ala lon ale")
@@ -354,5 +364,5 @@ async def cmd_lawa_help(ctx: ApplicationContext, actor: DiscordActor, ephemeral:
         )
         sona += f"`{prefix} weka [True|False]`: sina toki pona ala la mi weka e toki. sina wile ala e weka la\n"
     if is_guild:
-        sona += f"`{prefix} poki [poki]`: sina pana e poki tawa ma la mi lukin taso e jan pi poki ni.\n"
+        sona += f"`{prefix} poki [poki]`: sina pana e poki la mi lukin taso e jan pi poki ni.\n"
     await ctx.respond(sona, ephemeral=ephemeral)
