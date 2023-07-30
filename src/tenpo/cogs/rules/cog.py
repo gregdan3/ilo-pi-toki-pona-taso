@@ -297,6 +297,7 @@ async def build_rule_resp(
 
 
 async def cmd_list_rules(ctx: ApplicationContext, actor: DiscordActor, ephemeral: bool):
+    # TODO: order is controlled by guild/user distinction which is bad.
     guild = ctx.guild
     assert guild
     user = ctx.user
@@ -308,21 +309,28 @@ async def cmd_list_rules(ctx: ApplicationContext, actor: DiscordActor, ephemeral
 
     disabled = await DB.get_disabled(actor.id)
     if disabled:
-        disabled_info = "**mi lukin ala e toki sina. lawa li lon tawa sona.**"
+        disabled_info = (
+            "**mi lukin ala e toki.** sina wile ante e ni la o kepeken `/lawa lukin`."
+        )
         blurbs.append(disabled_info)
 
+    # TODO: sort by guild -> category -> channel considering ownership...
     rules, exceptions = await DB.list_rules(actor.id)
     rules_info = format_rules_exceptions(rules, exceptions)
     blurbs.append(rules_info)
 
     if not is_guild:
+        response = await DB.get_response(actor.id)
+        blurbs.append(f"sina toki pona ala la mi {response} e toki sina")
+
         reacts = await DB.get_reacts(actor.id)
         reacts_info = format_reacts_rules(reacts)
         blurbs.append(reacts_info)
 
         opens = await DB.get_opens(actor.id)
-        opens_info = format_opens_user(opens)
-        blurbs.append(opens_info)
+        if opens:
+            opens_info = format_opens_user(opens)
+            blurbs.append(opens_info)
 
     if is_guild:
         role_id = await DB.get_role(actor.id)
@@ -336,6 +344,7 @@ async def cmd_list_rules(ctx: ApplicationContext, actor: DiscordActor, ephemeral
 
 
 async def cmd_lawa_help(ctx: ApplicationContext, actor: DiscordActor, ephemeral: bool):
+    # TODO: order is controlled by guild/user distinction which is bad.
     guild = ctx.guild
     assert guild
     user = ctx.user
@@ -347,22 +356,21 @@ async def cmd_lawa_help(ctx: ApplicationContext, actor: DiscordActor, ephemeral:
     if is_guild:
         prefix = "/lawa_ma"
 
-    sona = "mi __ilo pi toki pona taso__. sina toki pona ala la mi pona e ona. o lukin e ken mi:\n"
+    sona = "mi __ilo pi toki pona taso__. sina toki pona ala la mi pona e ni. o lukin e ken mi:\n"
+    sona += f"- `{prefix} sona`: mi pana e toki ni.\n"
+    sona += f"- `{prefix} ale`: mi pana e lawa ale sina.\n"
+    sona += f"- `{prefix} lukin`: mi lukin ala. sina ni sin la mi lukin.\n"
 
-    sona += f"`{prefix} sona`: mi pana e toki ni.\n"
-    sona += f"`{prefix} ale`: mi pana e lawa ale sina.\n"
-    sona += f"`{prefix} lukin`: mi lukin ala. sin la mi lukin.\n"
-    sona += f"`{prefix} [tomo|kulupu|ma] (ala)`: mi lukin e ijo.\n"
-    sona += f"    `-` sina toki pona ala lon ijo la mi pona e ona.\n"
-    sona += f"    `-` `ala` la mi lukin ala e ijo. ijo ni li ken lon insa pi ijo pi toki pona.\n"
-    sona += f"    `-` sina pana tu e ijo sama la mi weka e lukin.\n"
+    sona += f"- `{prefix} [tomo|kulupu|ma] (ala)`: mi lukin e ijo. sina pana sin e ijo la mi lukin ala.\n"
+    sona += f"  - sina toki pona ala lon ijo la mi pona e ni.\n"
+    sona += f"  - `ala` la mi lukin ala e ijo. ijo ni li ken lon insa pi ijo ante.\n"
+    sona += f"  - sina wile lawa e ale la o kepeken `/lawa ma`.\n"
+
     if not is_guild:
-        sona += f"`{prefix} open [toki]`: toki li lon open pi toki sina la mi lukin ala e ona.\n"
-        sona += f"    - sina pana tu e toki sama la mi weka e ona.\n"
-        sona += (
-            f"`{prefix} sitelen [sitelen]`: sina toki pona ala la mi pana e sitelen.\n"
-        )
-        sona += f"`{prefix} weka [True|False]`: sina toki pona ala la mi weka e toki. sina wile ala e weka la\n"
+        sona += f"- `{prefix} open [toki]`: toki li lon open pi toki sina la mi lukin ala.\n"
+        sona += f"  - sina pana tu e toki sama la mi weka e ona.\n"
+        sona += f"- `{prefix} nasin [sitelen|weka]`: mi ken sitelen li ken weka e toki sina.\n"
+        sona += f"- `{prefix} sitelen [sitelen]`: mi sitelen e toki pona ala la mi pana e sitelen ni ale.\n"
     if is_guild:
-        sona += f"`{prefix} poki [poki]`: sina pana e poki la mi lukin taso e jan pi poki ni.\n"
+        sona += f"`- {prefix} poki [poki]`: mi lukin taso e jan pi poki ni. sina pana sin la mi lukin e jan ale.\n"
     await ctx.respond(sona, ephemeral=ephemeral)

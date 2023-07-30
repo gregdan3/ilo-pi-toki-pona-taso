@@ -213,7 +213,7 @@ async def delete_msg(message: Message):
     LOG.debug("Deleting user message")
     await message.delete(reason="ona o toki pona taso")
     await dm.send(
-        f"sina toki pona ala la mi weka e toki sina ni: \n\n{codeblock_wrap(message.content)}\n\nsina wile ala e weka la o kepeken `/lawa nasin`"
+        f"sina toki pona ala la mi weka e toki sina ni:\n{codeblock_wrap(message.content)}\nsina wile ala e weka la o kepeken `/lawa nasin`"
     )
 
 
