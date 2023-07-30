@@ -199,7 +199,7 @@ class CogRules(Cog):
         user = ctx.user
         assert user
         result = await DB.toggle_open(user.id, toki)
-        if not result:
+        if result:
             await ctx.respond(
                 "open pi toki sina li ni la mi lukin ala: __%s__" % toki, ephemeral=True
             )
