@@ -1,14 +1,13 @@
 # STL
 import random
-from typing import Tuple, Optional, cast
+from typing import Optional, cast
 
 # PDM
-from discord import Guild, Member, Thread
+from discord import Member, Thread
 from discord.ext import commands
 from discord.message import Message
 from discord.reaction import Reaction
 from discord.ext.commands import Cog
-from discord.types.channel import Channel
 
 # LOCAL
 from tenpo.db import Container
@@ -16,7 +15,6 @@ from tenpo.__main__ import DB
 from tenpo.log_utils import getLogger
 from tenpo.chat_utils import DEFAULT_REACTS, codeblock_wrap
 from tenpo.phase_utils import is_major_phase
-from tenpo.cogs.rules.cog import MessageableGuildChannel
 from tenpo.toki_pona_utils import is_toki_pona
 
 LOG = getLogger()
