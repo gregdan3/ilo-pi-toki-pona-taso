@@ -78,7 +78,7 @@ def load_extensions():
         path = cogs_path + cogname
         if not os.path.isdir(path):
             continue
-        if not ("__init__.py" in os.listdir(path)):
+        if "__init__.py" not in os.listdir(path):
             continue
         LOG.info("Loading cog %s", cogname)
         BOT.load_extension(f"tenpo.cogs.{cogname}")
