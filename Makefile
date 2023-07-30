@@ -1,7 +1,5 @@
-# MAIN=podman
-# SUB=podman-compose
-MAIN=docker
-SUB=docker compose
+# ILO=podman-compose
+ILO=docker compose
 
 init:
 	pdm install
@@ -11,24 +9,25 @@ test:
 
 dev:
 	pdm run nvim src/tenpo/__main__.py
-
-build:
-	${SUB} build
-
-up:
-	${SUB} up -d
-
 local:
 	pdm run python -m tenpo
 
+build:
+	${ILO} build
+
+up:
+	${ILO} up -d
+
 stop:
-	${SUB} stop
+	${ILO} stop
 
 down:
-	${SUB} down
+	${ILO} down
 
 push:
-	${SUB} push
+	echo "Not implemented!"
+	exit 1
+	${ILO} push
 
 logs:
-	${SUB} logs
+	${ILO} logs
