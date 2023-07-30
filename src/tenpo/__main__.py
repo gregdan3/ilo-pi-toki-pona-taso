@@ -41,14 +41,13 @@ INTENTS = Intents(
     guild_messages=True,  # we don't support dms, for now
     guild_reactions=True,  # only `on_reaction_add` below
     message_content=True,  # needed to evaluate: ona li toki ala toki pona
-    webhooks=True,  # pluralkit
 )
 BOT = commands.Bot(
     command_prefix="/",
     intents=INTENTS,
     debug_guilds=DEBUG_GUILDS,
 )
-DB: TenpoDB = BOT.loop.run_until_complete(TenpoDB(database_file=DB_FILE))
+DB = BOT.loop.run_until_complete(TenpoDB(database_file=DB_FILE))
 # use bot's loop instead of our own so tasks work as intended
 
 
@@ -78,7 +77,7 @@ def load_extensions():
         path = cogs_path + cogname
         if not os.path.isdir(path):
             continue
-        if not ("__init__.py" in os.listdir(path)):
+        if "__init__.py" not in os.listdir(path):
             continue
         LOG.info("Loading cog %s", cogname)
         BOT.load_extension(f"tenpo.cogs.{cogname}")

@@ -5,7 +5,7 @@ init:
 	pdm sync --dev
 
 test:
-	pdm run pytest -vvrP tests
+	pdm run pytest --ignore=.venv --ignore=__pypackages__ -rP .
 
 dev:
 	pdm run ${EDITOR} src/tenpo/__main__.py

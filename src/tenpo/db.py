@@ -4,7 +4,7 @@
 # STL
 import enum
 import uuid
-from typing import Set, Dict, List, Tuple, Optional, cast
+from typing import Any, Set, Dict, List, Tuple, Optional, cast
 from datetime import datetime
 from contextlib import asynccontextmanager
 
@@ -170,9 +170,11 @@ class TenpoDB:
             e = await self.__get_entity(s, eid)
             return e.config
 
-    async def __get_config_item(self, eid: int, key: ConfigKey) -> Optional[JSONType]:
+    async def __get_config_item(
+        self, eid: int, key: ConfigKey, default: Any = None
+    ) -> Optional[JSONType]:
         config = await self.__get_config(eid)
-        return config.get(key.value) if config else None
+        return config.get(key.value, default) if config else default
 
     async def __set_config_item(
         self,
@@ -231,6 +233,13 @@ class TenpoDB:
         to_assign = None if is_same else role
         await self.set_role(eid, to_assign)
         return not is_same  # true = wrote, false = deleted
+
+    async def get_response(self, eid: int) -> Optional[str]:
+        return await self.__get_config_item(eid, ConfigKey.RESPONSE, "sitelen")
+        # TODO: assert values that can exist in a given key
+
+    async def set_response(self, eid: int, response: str):
+        return await self.__set_config_item(eid, ConfigKey.RESPONSE, response)
 
     async def get_calendar(self, eid: int) -> Optional[int]:
         return await self.__get_config_item(eid, ConfigKey.CALENDAR)

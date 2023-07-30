@@ -1,21 +1,20 @@
 # STL
 import random
-from typing import Tuple, Optional, cast
+from typing import Optional, cast
 
 # PDM
-from discord import Guild, Member, Thread
+from discord import Member, Thread
 from discord.ext import commands
 from discord.message import Message
+from discord.reaction import Reaction
 from discord.ext.commands import Cog
-from discord.types.channel import Channel
 
 # LOCAL
 from tenpo.db import Container
 from tenpo.__main__ import DB
 from tenpo.log_utils import getLogger
-from tenpo.chat_utils import DEFAULT_REACTS
+from tenpo.chat_utils import DEFAULT_REACTS, codeblock_wrap
 from tenpo.phase_utils import is_major_phase
-from tenpo.cogs.rules.cog import MessageableGuildChannel
 from tenpo.toki_pona_utils import is_toki_pona
 
 LOG = getLogger()
@@ -95,103 +94,127 @@ class CogOTokiPonaTaso(Cog):
 
     @commands.Cog.listener("on_message")
     async def o_toki_pona_taso(self, message: Message):
-        if not (package := await should_check(message)):
-            LOG.debug("Ignoring user message; preconditions failed")
-            return
-        guild, channel = package
-
-        if await has_disabled(message.author.id):
-            LOG.debug("Ignoring user message; user has disabled")
+        if not await should_check(message):
+            LOG.debug("Ignoring message; preconditions failed")
             return
 
-        if not await in_checked_channel_user(
-            message.author.id,
-            channel.id,
-            channel.category_id,
-            guild.id,
-        ):
-            LOG.debug("Ignoring user message; not in configured channel")
-            return
-
-        opens = await DB.get_opens(message.author.id)
-        if startswith_ignorable(message.content, opens):
-            LOG.debug("Ignoring user message; starts with ignorable")
+        if not (await should_react_user(message) or await should_react_guild(message)):
             return
 
         if is_toki_pona(message.content):
-            LOG.debug("Ignoring user message; is toki pona")
+            LOG.debug("Ignoring message; is toki pona")
             return
 
-        react = await get_react(message.author.id)
-        LOG.debug("Reacting %s to user message" % react)
-        await message.add_reaction(react)
-
-    @commands.Cog.listener("on_message")
-    async def tenpo_la_o_toki_pona_taso(self, message: Message):
-        if (package := await should_check(message)) is None:
-            LOG.debug("Ignoring guild message; preconditions failed")
-            return
-        guild, channel = package
-
-        if await has_disabled(guild.id):
-            LOG.debug("Ignoring guild message; guild has disabled")
-            return
-
-        # TODO: configurable timeframes
-        if not is_major_phase():
-            LOG.debug("Ignoring guild message; not event time")
-            return
-
-        if role := await get_guild_role(guild.id):
-            if not user_has_role(cast(Member, message.author), role):
-                LOG.debug("Ignoring guild message; no user role")
-                return
-
-        if not await in_checked_channel_guild(
-            channel.id,
-            channel.category_id,
-            guild.id,
-        ):
-            LOG.debug("Ignoring guild message; not in configured channel")
-            return
-
-        if is_toki_pona(message.content):
-            LOG.debug("Ignoring guild message; is toki pona")
-            return
-
-        react = await get_react(message.author.id)
-        LOG.debug("Reacting %s to guild message" % react)
-        # guild can't choose their own reacts... TODO: ?
-        # imo no, users should be able to customize their experience always
-        await message.add_reaction(react)
+        await respond(message)
 
 
-async def should_check(
-    message: Message,
-) -> Optional[Tuple[Guild, MessageableGuildChannel]]:
-    """Determine if a message is in a location and by a user worth checking for TPT
-    Does not check any database-derived rules
-    Return message's guild, channel to check, or None if no check should be performed
+async def should_react_user(message: Message) -> bool:
+    channel, guild = message.channel, message.guild
+    if isinstance(channel, Thread):
+        # TODO: configurable thread behavior?
+        channel = channel.parent
+
+    if await has_disabled(message.author.id):
+        LOG.debug("Ignoring user message; user has disabled")
+        return False
+
+    if not await in_checked_channel_user(
+        message.author.id,
+        channel.id,
+        channel.category_id,
+        guild.id,
+    ):
+        LOG.debug("Ignoring user message; not in configured channel")
+        return False
+
+    # NOTE: guild rules override this! this is intentional
+    opens = await DB.get_opens(message.author.id)
+    if startswith_ignorable(message.content, opens):
+        LOG.debug("Ignoring user message; starts with ignorable")
+        return False
+
+    return True
+
+
+async def should_react_guild(message: Message) -> bool:
+    channel, guild = message.channel, message.guild
+    if isinstance(channel, Thread):
+        # TODO: configurable thread behavior?
+        channel = channel.parent
+    if await has_disabled(guild.id):
+        LOG.debug("Ignoring guild message; guild has disabled")
+        return False
+
+    # TODO: configurable timeframes
+    if not is_major_phase():
+        LOG.debug("Ignoring guild message; not event time")
+        return False
+
+    if role := await get_guild_role(guild.id):
+        # if guild set a role, check users with the role; else, check all users
+        if not user_has_role(cast(Member, message.author), role):
+            LOG.debug("Ignoring guild message; user missing role")
+            return False
+
+    if not await in_checked_channel_guild(
+        channel.id,
+        channel.category_id,
+        guild.id,
+    ):
+        LOG.debug("Ignoring guild message; not in configured channel")
+        return False
+
+    return True
+
+
+async def should_check(message: Message) -> bool:
+    """
+    Determine if a message is in a location worth checking.
+    - The user must not be a bot (see TODO)
+    - The message must be in a guild
+    - The message must be in a channel
     """
     if message.author.bot:
         # TODO: exclude bots, but not pluralkit? they share a per-server id from the webhook
         # https://pluralkit.me/api/endpoints/#get-proxied-message-information
-        return
+        return False
 
     guild = message.guild
     if not guild:
-        return
-
-    channel = message.channel
+        return False
 
     # if a message is ever sent in a non-channel, how
+    # channel = message.channel
     # if not channel:
-    #     return
+    #     return False
 
-    if isinstance(channel, Thread):
-        channel = channel.parent
+    return True
 
-    return guild, channel  # type: ignore
+
+async def respond(message: Message):
+    response_type = await DB.get_response(message.author.id)
+    await RESPONSE_MAP[response_type](message)
+
+    # react = await get_react(message.author.id)
+    # LOG.debug("Reacting %s to user message" % react)
+    # await message.add_reaction(react)
+
+
+async def react_to_msg(message: Message):
+    uid = message.author.id
+    react = await get_react(uid)
+    LOG.debug("Reacting %s to user message" % react)
+    await message.add_reaction(react)
+
+
+async def delete_msg(message: Message):
+    if not (dm := message.author.dm_channel):
+        dm = await message.author.create_dm()
+    LOG.debug("Deleting user message")
+    await message.delete(reason="ona o toki pona taso")
+    await dm.send(
+        f"sina toki pona ala la mi weka e toki sina ni:\n{codeblock_wrap(message.content)}\nsina wile ala e weka la o kepeken `/lawa nasin`"
+    )
 
 
 async def get_react(eid: int):
@@ -199,3 +222,9 @@ async def get_react(eid: int):
     if reacts:
         return random.choice(reacts)
     return random.choice(DEFAULT_REACTS)
+
+
+RESPONSE_MAP = {
+    "sitelen": react_to_msg,
+    "weka": delete_msg,
+}

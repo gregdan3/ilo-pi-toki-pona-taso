@@ -2,10 +2,10 @@
 version: "3.8"
 services:
   bot:
+    image: "gregdan3/ilo-pi-toki-pona-taso:${VERSION:-latest}"
     build:
       context: "."
       dockerfile: "Dockerfile"
-    container_name: "tenpo"
     environment:
       DISCORD_TOKEN: "${DISCORD_TOKEN}"
       LOG_LEVEL: "${LOG_LEVEL}"
