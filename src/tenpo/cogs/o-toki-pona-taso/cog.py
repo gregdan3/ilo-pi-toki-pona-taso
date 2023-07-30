@@ -95,103 +95,103 @@ class CogOTokiPonaTaso(Cog):
 
     @commands.Cog.listener("on_message")
     async def o_toki_pona_taso(self, message: Message):
-        if not (package := await should_check(message)):
-            LOG.debug("Ignoring user message; preconditions failed")
-            return
-        guild, channel = package
-
-        if await has_disabled(message.author.id):
-            LOG.debug("Ignoring user message; user has disabled")
+        if not await should_check(message):
+            LOG.debug("Ignoring message; preconditions failed")
             return
 
-        if not await in_checked_channel_user(
-            message.author.id,
-            channel.id,
-            channel.category_id,
-            guild.id,
-        ):
-            LOG.debug("Ignoring user message; not in configured channel")
-            return
-
-        opens = await DB.get_opens(message.author.id)
-        if startswith_ignorable(message.content, opens):
-            LOG.debug("Ignoring user message; starts with ignorable")
+        if not (await should_react_user(message) or await should_react_guild(message)):
             return
 
         if is_toki_pona(message.content):
-            LOG.debug("Ignoring user message; is toki pona")
+            LOG.debug("Ignoring message; is toki pona")
             return
 
         react = await get_react(message.author.id)
         LOG.debug("Reacting %s to user message" % react)
         await message.add_reaction(react)
 
-    @commands.Cog.listener("on_message")
-    async def tenpo_la_o_toki_pona_taso(self, message: Message):
-        if (package := await should_check(message)) is None:
-            LOG.debug("Ignoring guild message; preconditions failed")
-            return
-        guild, channel = package
 
-        if await has_disabled(guild.id):
-            LOG.debug("Ignoring guild message; guild has disabled")
-            return
+async def should_react_user(message: Message) -> bool:
+    channel, guild = message.channel, message.guild
+    if isinstance(channel, Thread):
+        # TODO: configurable thread behavior?
+        channel = channel.parent
 
-        # TODO: configurable timeframes
-        if not is_major_phase():
-            LOG.debug("Ignoring guild message; not event time")
-            return
+    if await has_disabled(message.author.id):
+        LOG.debug("Ignoring user message; user has disabled")
+        return False
 
-        if role := await get_guild_role(guild.id):
-            if not user_has_role(cast(Member, message.author), role):
-                LOG.debug("Ignoring guild message; no user role")
-                return
+    if not await in_checked_channel_user(
+        message.author.id,
+        channel.id,
+        channel.category_id,
+        guild.id,
+    ):
+        LOG.debug("Ignoring user message; not in configured channel")
+        return False
 
-        if not await in_checked_channel_guild(
-            channel.id,
-            channel.category_id,
-            guild.id,
-        ):
-            LOG.debug("Ignoring guild message; not in configured channel")
-            return
+    # NOTE: guild rules override this! this is intentional
+    opens = await DB.get_opens(message.author.id)
+    if startswith_ignorable(message.content, opens):
+        LOG.debug("Ignoring user message; starts with ignorable")
+        return False
 
-        if is_toki_pona(message.content):
-            LOG.debug("Ignoring guild message; is toki pona")
-            return
-
-        react = await get_react(message.author.id)
-        LOG.debug("Reacting %s to guild message" % react)
-        # guild can't choose their own reacts... TODO: ?
-        # imo no, users should be able to customize their experience always
-        await message.add_reaction(react)
+    return True
 
 
-async def should_check(
-    message: Message,
-) -> Optional[Tuple[Guild, MessageableGuildChannel]]:
-    """Determine if a message is in a location and by a user worth checking for TPT
-    Does not check any database-derived rules
-    Return message's guild, channel to check, or None if no check should be performed
+async def should_react_guild(message: Message) -> bool:
+    channel, guild = message.channel, message.guild
+    if isinstance(channel, Thread):
+        # TODO: configurable thread behavior?
+        channel = channel.parent
+    if await has_disabled(guild.id):
+        LOG.debug("Ignoring guild message; guild has disabled")
+        return False
+
+    # TODO: configurable timeframes
+    if not is_major_phase():
+        LOG.debug("Ignoring guild message; not event time")
+        return False
+
+    if role := await get_guild_role(guild.id):
+        # if guild set a role, check users with the role; else, check all users
+        if not user_has_role(cast(Member, message.author), role):
+            LOG.debug("Ignoring guild message; user missing role")
+            return False
+
+    if not await in_checked_channel_guild(
+        channel.id,
+        channel.category_id,
+        guild.id,
+    ):
+        LOG.debug("Ignoring guild message; not in configured channel")
+        return False
+
+    return True
+
+
+async def should_check(message: Message) -> bool:
+    """
+    Determine if a message is in a location worth checking.
+    - The user must not be a bot (see TODO)
+    - The message must be in a guild
+    - The message must be in a channel
     """
     if message.author.bot:
         # TODO: exclude bots, but not pluralkit? they share a per-server id from the webhook
         # https://pluralkit.me/api/endpoints/#get-proxied-message-information
-        return
+        return False
 
     guild = message.guild
     if not guild:
-        return
-
-    channel = message.channel
+        return False
 
     # if a message is ever sent in a non-channel, how
-    # if not channel:
-    #     return
+    channel = message.channel
+    if not channel:
+        return False
 
-    if isinstance(channel, Thread):
-        channel = channel.parent
-
-    return guild, channel  # type: ignore
+    return True
 
 
 async def get_react(eid: int):
