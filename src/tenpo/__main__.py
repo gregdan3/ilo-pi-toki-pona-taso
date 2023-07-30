@@ -48,7 +48,7 @@ BOT = commands.Bot(
     intents=INTENTS,
     debug_guilds=DEBUG_GUILDS,
 )
-DB: TenpoDB = BOT.loop.run_until_complete(TenpoDB(database_file=DB_FILE))
+DB = BOT.loop.run_until_complete(TenpoDB(database_file=DB_FILE))
 # use bot's loop instead of our own so tasks work as intended
 
 
