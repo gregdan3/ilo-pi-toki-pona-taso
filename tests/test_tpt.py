@@ -5,6 +5,20 @@ import pytest
 from tenpo.toki_pona_utils import _is_toki_pona_ascii
 
 RATIO = 0.9
+LARGE_CODEBLOCK = """
+```
+{{ if (eq .Reaction.Emoji.Name "📌") }}
+  {{if eq .Channel.OwnerID .User.ID}}
+    {{if .Message.Pinned}}
+      {{unpinMessage .Channel.ID .Message.ID}}
+    {{else}}
+      {{pinMessage .Channel.ID .Message.ID}}
+    {{end}}
+  {{end}}
+{{end}}
+```
+
+"""
 
 
 @pytest.mark.parametrize(
@@ -52,6 +66,13 @@ RATIO = 0.9
         # quotes
         ("ona li toki e ni: 'single quotes are boring'", True),
         ('ona li toki e ni: "double quotes are cool"', True),
+        ("`https://example.com` li pona tawa mi", True),
+        (
+            "`many words that are illegal` ni li toki pona lon",
+            True,
+        ),
+        ("```\nhttps://example.com\n``` li pona tawa mi", True),
+        (LARGE_CODEBLOCK, True),
         # emotes
         ("toki pona li pona <a:smile:123456789>", True),
         ("mi moku e kili <a:thinking:987654321>", True),

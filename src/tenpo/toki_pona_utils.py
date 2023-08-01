@@ -25,7 +25,7 @@ LOG = getLogger()
 TOKEN_DELIMITERS_RE = r"\s+|(?=[.?!;:])"
 CONSECUTIVE_DUPLICATES_RE = r"(.)\1+"
 SPOILERS_RE = r"\|\|[^|]+\|\|"
-QUOTES_RE = r'"[^"]+"' + r"|" + r"'[^']+'"
+QUOTES_RE = r'"[^"]+"' + r"|" + r"'[^']+'" + r"|" + r"`[^`]+"
 URLS_RE = r"https?:\/\/\S+"
 EMOTES_RE = r"<a?:\w+:\d+>"
 SENT_CLEANERS = [SPOILERS_RE, QUOTES_RE, URLS_RE, EMOTES_RE]  # TODO: partial-ify
