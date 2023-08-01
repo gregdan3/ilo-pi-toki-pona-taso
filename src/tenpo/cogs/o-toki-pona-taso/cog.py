@@ -3,7 +3,7 @@ import random
 from typing import Optional, cast
 
 # PDM
-from discord import Member, Thread
+from discord import Bot, Member, Thread
 from discord.ext import commands
 from discord.message import Message
 from discord.reaction import Reaction
@@ -89,8 +89,8 @@ def startswith_ignorable(message: str, ignorable: list[str]):
 
 
 class CogOTokiPonaTaso(Cog):
-    def __init__(self, bot):
-        self.bot = bot
+    def __init__(self, bot: Bot):
+        self.bot: Bot = bot
 
     @commands.Cog.listener("on_message")
     async def o_toki_pona_taso(self, message: Message):
@@ -106,6 +106,42 @@ class CogOTokiPonaTaso(Cog):
             return
 
         await respond(message)
+
+    @commands.Cog.listener("on_message_edit")
+    async def toki_li_ante_la(self, before: Message, after: Message):
+        # NOTE: `on_message_edit` only fires for cached messages
+        # *presumably* these are the only kind of messages we care about
+        # instead, maybe on_raw_message_edit?
+        message = after
+        if not await should_check(message):
+            LOG.debug("Ignoring edit; preconditions failed")
+            return
+        if not (await should_react_user(message) or await should_react_guild(message)):
+            return
+
+        # check if message already had a react
+        # if it had a react, we remove it
+        react = await get_own_react(before)
+        before_ok = react is None
+        after_ok = is_toki_pona(after.content)
+        LOG.debug("validity: %s, %s", before_ok, after_ok)
+
+        if before_ok == after_ok:
+            LOG.debug("Ignoring edit; did not change validity")
+            return
+        if before_ok and not after_ok:
+            await respond(message)
+            return
+        if not before_ok and after_ok:
+            assert self.bot.user  # asserts we are actually logged in...
+            await message.remove_reaction(react, self.bot.user)
+
+
+async def get_own_react(message: Message) -> Optional[Reaction]:
+    for react in message.reactions:
+        if react.me:
+            return react
+    return None
 
 
 async def should_react_user(message: Message) -> bool:
