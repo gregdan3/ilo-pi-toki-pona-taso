@@ -38,7 +38,7 @@ COMMON_ALLOWABLES = {"msa", "cw"}
 
 TOKEN_FILTERS = [
     lambda s: s.isalpha(),  # is all alphabetical; removes ""
-    lambda s: (not (s[0].isupper())) or (s.isupper()),  # not a proper noun, or all caps
+    lambda s: not (s == s.capitalize()),
     lambda s: s not in COMMON_ALLOWABLES,
 ]
 TOKEN_CLEANERS = [

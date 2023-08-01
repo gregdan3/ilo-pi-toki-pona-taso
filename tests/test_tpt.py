@@ -43,6 +43,12 @@ LARGE_CODEBLOCK = """
         ("sina kepeken E ilo", True),
         ("AAAAAAAAAAa", True),
         ("aAAAAAAAAAa", True),  # s.lower() MUST be before deduplication
+        ("toki mMmM", False),
+        ("MNMNMN", False),
+        ("Mnmnmn", True),
+        ("aAAAAAA", True),
+        ("B", True),
+        ("b", False),
         # punctuation
         ("W8F4XYZ, TOKI PONA!", True),
         ("mi moku. sina lukin", True),
@@ -57,12 +63,18 @@ LARGE_CODEBLOCK = """
         ("kulupu xerox li ike", False),
         ("kulupu Xerox li ike", True),
         ("ilo W8F4XYZ li toki pona", True),
+        ("homestuck", False),
+        ("Homestuck", True),
+        ("lipu Homestuck", True),
+        ("homestuck Homestuck", False),
+        ("nimi M li lon ala lon toki pona?", True),
         # consecutive duplicates
         ("waawaaaa la mi moku", True),
         ("pona muuuute", True),
         # spoilers
         ("laughing kala wawa", False),
         ("||laughing|| kala wawa", True),
+        ("\n||\n\nlaughing\n\n\n|| kala wawa", True),
         # quotes
         ("ona li toki e ni: 'single quotes are boring'", True),
         ('ona li toki e ni: "double quotes are cool"', True),
@@ -92,14 +104,14 @@ LARGE_CODEBLOCK = """
         ("o lukin e ni: <https://example.com/toki-pona>", True),
         # ignorables
         ("kiwen moli 42", True),
+        ("2+2=5", True),
         # typoes
         ("tmo tawa mi li pona mute la mi kepeken ona lon tenpo mute", True),
         ("mi pakla lon nimi pi mute lili", False),
-        # caught in the wild
-        ("homestuck", False),
-        ("Homestuck", True),
-        ("lipu Homestuck", True),
-        ("homestuck Homestuck", False),
+        (
+            "mi pakla lon nimi pi mute lili, taso ale li pona tan ni: mi toki mute",
+            True,
+        ),
     ],
 )
 def test_is_toki_pona_ascii(test_input, expected_output):
