@@ -3,7 +3,8 @@ import random
 from typing import Optional, cast
 
 # PDM
-from discord import Bot, Member, Thread
+import discord
+from discord import Bot, User, Member, Thread
 from discord.ext import commands
 from discord.message import Message
 from discord.reaction import Reaction
@@ -18,6 +19,8 @@ from tenpo.phase_utils import is_major_phase
 from tenpo.toki_pona_utils import is_toki_pona
 
 LOG = getLogger()
+
+UNKNOWN_EMOJI_ERR_CODE = 10014
 
 
 async def get_guild_role(guild_id: int):
@@ -240,16 +243,35 @@ async def react_to_msg(message: Message):
     uid = message.author.id
     react = await get_react(uid)
     LOG.debug("Reacting %s to user message" % react)
-    await message.add_reaction(react)
+    try:
+        await message.add_reaction(react)
+        return
+    except discord.errors.HTTPException as e:
+        if e.code != UNKNOWN_EMOJI_ERR_CODE:
+            LOG.error("Couldn't react due to unexpected exception!")
+            LOG.error(f"Error code: {e.code}")
+            LOG.error(f"Error text: {e.text}")
+            return
+
+    # error handler
+    LOG.warning("Couldn't use react %s on user %s", react, message.author.name)
+    await send_dm_to_user(
+        message.author,
+        f"""mi alasa sitelen e toki sina ni:
+{codeblock_wrap(message.content)}
+mi alasa kepeken sitelen ni, taso mi ken ala:
+{codeblock_wrap(react)}""",
+    )
 
 
 async def delete_msg(message: Message):
-    if not (dm := message.author.dm_channel):
-        dm = await message.author.create_dm()
     LOG.debug("Deleting user message")
     await message.delete(reason="ona o toki pona taso")
-    await dm.send(
-        f"sina toki pona ala la mi weka e toki sina ni:\n{codeblock_wrap(message.content)}\nsina wile ala e weka la o kepeken `/lawa nasin`"
+    await send_dm_to_user(
+        message.author,
+        f"""sina toki pona ala la mi weka e toki sina ni:
+{codeblock_wrap(message.content)}
+sina wile ala e weka la o kepeken `/lawa nasin`""",
     )
 
 
@@ -258,6 +280,12 @@ async def get_react(eid: int):
     if reacts:
         return random.choice(reacts)
     return random.choice(DEFAULT_REACTS)
+
+
+async def send_dm_to_user(user: User | Member, message: str):
+    if not (dm := user.dm_channel):
+        dm = await user.create_dm()
+    await dm.send(message)
 
 
 RESPONSE_MAP = {
