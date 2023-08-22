@@ -1,3 +1,6 @@
+# STL
+import re
+
 # PDM
 import emoji
 from discord import Cog, Role, Guild, CategoryChannel, SlashCommandGroup, option
@@ -218,27 +221,53 @@ class CogRules(Cog):
         if not sitelen:
             await DB.set_reacts(user.id, [])
             await ctx.respond(
-                "sina pana e sitelen ala la mi weka e sitelen ale", ephemeral=True
+                "sina pana ala e sitelen la mi weka e sitelen sina", ephemeral=True
             )
             return
 
         emojis = [e["emoji"] for e in emoji.emoji_list(sitelen)]
         reacts = get_discord_reacts(sitelen)
-        all_reacts = emojis + reacts
-        if not all_reacts:
+        if len(emojis) + len(reacts) > 50:
             await ctx.respond(
-                "sina pana e sitelen, taso mi sona ala e ona. ona li pona ala pona?",
-                ephemeral=True,
+                "sina pana e sitelen pi mute ike a. o lili e mute", ephemeral=True
             )
-            return
-        await DB.set_reacts(user.id, all_reacts)
 
-        formatted_reacts = format_reacts(all_reacts)
-        await ctx.respond(
-            "sina toki pona ala la mi pana e sitelen wan pi ni ale:\n%s"
-            % formatted_reacts,
-            ephemeral=True,
-        )
+        broken_reacts = []
+        for react in reacts:
+            react_id = re.search(r"\d+", react)
+            if not react_id:
+                broken_reacts.append(react)
+                continue
+            react_id = react_id.group()
+            react_id = int(react_id)
+
+            react_from_bot = self.bot.get_emoji(react_id)
+            if not react_from_bot:
+                broken_reacts.append(react)
+
+        for react in broken_reacts:
+            reacts.remove(react)
+
+        all_reacts = emojis + reacts
+        if all_reacts:
+            await DB.set_reacts(user.id, all_reacts)
+
+        resp = ""
+        if all_reacts:
+            formatted_reacts = format_reacts(all_reacts)
+            resp += (
+                "sina toki pona ala la mi pana e sitelen tan ni:\n%s" % formatted_reacts
+            )
+        if broken_reacts:
+            formatted_reacts = format_reacts(broken_reacts)
+            resp += (
+                "\n\nmi lon ala ma pi sitelen ni la mi ken ala pana e ona:\n%s"
+                % formatted_reacts
+            )
+        if not all_reacts:
+            resp += "\n\nmi kama jo ala e sitelen pona tan sina la mi ante ala e sitelen sina."
+
+        await ctx.respond(resp, ephemeral=True)
 
 
 async def cmd_toggle_rule(
