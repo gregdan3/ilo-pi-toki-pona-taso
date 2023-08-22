@@ -37,13 +37,17 @@ class CogPhaseCalendar(Cog):
 
             if not channel:
                 LOG.warning("Channel %s not found in cache", channel)
-                channel = cast(
-                    MessageableGuildChannel, await self.bot.fetch_channel(channel_id)
-                )
+                try:
+                    channel = cast(
+                        MessageableGuildChannel,
+                        await self.bot.fetch_channel(channel_id),
+                    )
+                except discord.errors.NotFound:
+                    # NOTE: o weka ala tan ilo awen tan ni:
+                    # ilo Siko li ken pakala li ken pana ala e tomo.
+                    # taso tomo li ken awen lon.
+                    LOG.warning("Channel %s not found in cache or on request", channel)
+                    continue
 
-            if not channel:
-                LOG.warning("Channel %s could not be found. Was it deleted?", channel)
-                # TODO: also remove from DB to not waste effort? would need a guild <=> channel resp from get_calendars
-                continue
             await channel.edit(name=title)
             LOG.info("Updated channel %s", channel)
