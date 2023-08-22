@@ -1,5 +1,5 @@
 # STL
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 
 # PDM
 import pytest
@@ -7,10 +7,51 @@ import pytest
 # LOCAL
 from tenpo.phase_utils import (
     PHASES,
+    datetime_to_emoji,
     major_phases_from,
     date_in_major_phase,
+    datetime_to_degrees,
     major_phases_from_now,
 )
+
+MY_TZ = timezone(timedelta(hours=-5))
+
+DATETIMES_KNOWN_PHASE = (
+    (
+        datetime(year=2023, month=8, day=1, hour=13, minute=32).astimezone(MY_TZ),
+        True,
+        "Start of August 2023 full moon (to minute)",
+    ),
+    (
+        datetime(year=2023, month=8, day=1, hour=23, minute=0).astimezone(MY_TZ),
+        True,
+        "Middle of August 2023 full moon",
+    ),
+    (
+        datetime(year=2023, month=8, day=2, hour=13, minute=30).astimezone(MY_TZ),
+        True,
+        "End of August 2023 full moon (to minute)",
+    ),
+    (
+        datetime(year=2023, month=8, day=1, hour=13, minute=28).astimezone(MY_TZ),
+        False,
+        "Before beginning of August 2023 full moon",
+    ),
+    (
+        datetime(year=2023, month=8, day=2, hour=13, minute=32).astimezone(MY_TZ),
+        False,
+        "After end of August 2023 full moon",
+    ),
+)
+
+
+@pytest.mark.parametrize(
+    "tz_datetime, in_major_phase, annotation", DATETIMES_KNOWN_PHASE
+)
+def test_expected_times(tz_datetime, in_major_phase, annotation):
+    if not annotation:
+        annotation = "No annotation"
+    assert date_in_major_phase(tz_datetime) == in_major_phase, annotation
 
 
 def test_generate_phases_consecutively():
@@ -35,45 +76,36 @@ def test_generate_phases_consecutively_from_now():
 
 
 def test_2023_march_07_09():
-    """demonstration, crosses a full moon"""
-    date = datetime(year=2023, month=3, day=7, hour=0, minute=0).astimezone()
-    delta = timedelta(minutes=5)
+    """ """
+    date = datetime(year=2023, month=3, day=7, hour=0, minute=0).astimezone(MY_TZ)
+    fm_start = datetime(year=2023, month=3, day=7, hour=6, minute=41).astimezone(MY_TZ)
+    # 1 min after
+    fm_end = datetime(year=2023, month=3, day=8, hour=6, minute=39).astimezone(MY_TZ)
+    # 1 min before
+    delta = timedelta(minutes=20)
     full = False
-    for i in range(600):
-        in_phase = date_in_major_phase(date)
-        if (in_phase and not full) or ((not in_phase) and full):
-            full = not full
-            term = "phase began at" if full else "phase ended at"
-            print(term, date)
-
-        if i < 81 or i >= 387:  # leading up to and ending phase
-            assert not in_phase, i
-        elif 81 <= i < 387:
-            assert in_phase, i
-        else:
-            assert False, "Impossible moon_state?"
+    for _ in range(600):
+        full = fm_start <= date <= fm_end
+        assert full == date_in_major_phase(date), f"Desynced phase at {date}"
         date += delta
 
 
-@pytest.mark.skip("unfinished test; same as previous")
-def test_2023_march_07_09_clean():
-    """demonstration, crosses a full moon"""
-    start_date = datetime(year=2023, month=3, day=7, hour=0, minute=0).astimezone()
-    end_date = start_date + timedelta(days=2)
-    step_size = timedelta(minutes=5)
+@pytest.mark.skip("Horribly conceived test")
+def test_daily():
+    date = datetime(year=2023, month=3, day=1, hour=0, minute=0).astimezone()
+    delta = timedelta(hours=8)
 
-    full_moon_start = datetime(
-        year=2023, month=3, day=7, hour=6, minute=45
-    ).astimezone()
-    full_moon_end = datetime(year=2023, month=3, day=8, hour=12, minute=50).astimezone()
-
-    date = start_date
-    while date <= end_date:
-        in_phase = date_in_major_phase(date)
-
-        if full_moon_start <= date < full_moon_end:
-            assert in_phase, f"Expected in phase at {date}"
+    for _ in range(45 * 3):  # 90 days test
+        emoji = datetime_to_emoji(date)
+        degree = datetime_to_degrees(date)
+        phase_state = date_in_major_phase(date)
+        if emoji == "🌝" or emoji == "🌚":
+            assert phase_state, "Faced phase %s at wrong time!" % emoji
         else:
-            assert not in_phase, f"Expected not in phase at {date}"
+            assert not phase_state, "Normal phase %s at wrong time!" % emoji
+        if emoji == "🌓" or emoji == "🌗":
+            assert (  # fairly liberal but we don't need crazy precision
+                75 <= degree <= 110 or 255 <= degree <= 300
+            ), "emoji %s appeared at %s" % (emoji, degree)
 
-        date += step_size
+        date += delta
