@@ -6,7 +6,7 @@ groups = ["default", "dev"]
 cross_platform = true
 static_urls = false
 lock_version = "4.3"
-content_hash = "sha256:d1f11e37bcfe8c1f1fb11bc50370873c55a08b72cf7c65e0bf10c78f8cc73c9e"
+content_hash = "sha256:f538577f1022a993522980b80b92cd97ae0311d7991ca05b5c43f87cf8e22fa0"
 
 [[package]]
 name = "aiodns"
@@ -531,6 +531,27 @@ dependencies = [
 files = [
     {file = "jplephem-2.18-py3-none-any.whl", hash = "sha256:ecfbf13779650288b958bb1f3848d6445163b0e879ca96759c941841f55abf1c"},
     {file = "jplephem-2.18.tar.gz", hash = "sha256:492911e8a4c47830791b03b9a0ffdf7fc65f685d1cbb3a1790b1ea288ae7fae5"},
+]
+
+[[package]]
+name = "line-profiler"
+version = "4.1.1"
+requires_python = ">=3.6"
+summary = "Line-by-line profiler"
+files = [
+    {file = "line_profiler-4.1.1-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:a33d728098af1c0d24a7d6cb121bf4627d423fcd6bc6759525df4b1713fcf7cb"},
+    {file = "line_profiler-4.1.1-cp310-cp310-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:832fb1b2fcec6f466d1b28456ea6bd5208784326202569631100b7281331ca3c"},
+    {file = "line_profiler-4.1.1-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:86851d76cbc3c74c6cb1685cb22802e75b61f8c1d5cf4c1e7c9f3d8c7a032053"},
+    {file = "line_profiler-4.1.1-cp310-cp310-musllinux_1_1_i686.whl", hash = "sha256:99991e9af0b94aa41e3bf7745a21ea194076bd18640d63fdd6f2a535aaa030d0"},
+    {file = "line_profiler-4.1.1-cp310-cp310-musllinux_1_1_x86_64.whl", hash = "sha256:b0707458ce16be63855c12f42790bef520ec9674a7373cbb2eec28e3c00dffeb"},
+    {file = "line_profiler-4.1.1-cp310-cp310-win_amd64.whl", hash = "sha256:1e750b1575e1e8c16da4a045ba4d566eb119a40b0a4ec9c4290cde6f7b2aa292"},
+    {file = "line_profiler-4.1.1-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:b46c0c4367077cb77187aca50ee79df1e09348d05dbf0a15341f50741101daa3"},
+    {file = "line_profiler-4.1.1-cp311-cp311-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:14944cf27c355f37e577d5c9a19192d9225766065fc3ea6bfc244ea10f6a4b9b"},
+    {file = "line_profiler-4.1.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:33c00f4740640aa729fe7118d0dd3c2b96af201c20afcbb5c5f71e1a3cfa10d8"},
+    {file = "line_profiler-4.1.1-cp311-cp311-musllinux_1_1_i686.whl", hash = "sha256:e9712fcae893ada6217586e3a4d73eaf7a1146596bb9e8152c963413eeb06384"},
+    {file = "line_profiler-4.1.1-cp311-cp311-musllinux_1_1_x86_64.whl", hash = "sha256:9f7fec0d06f96e963cc30647f65442e5264f31c80d0f60dcd4a059973bf24281"},
+    {file = "line_profiler-4.1.1-cp311-cp311-win_amd64.whl", hash = "sha256:521eae25a5629e30e3f93a1aedfd20e423352316af29ba1805f8a60fe2b8ec37"},
+    {file = "line_profiler-4.1.1.tar.gz", hash = "sha256:2fa73d2ac736902e0a6d1e74cf663244218d9c238a7aa5b5acfd6ac6d4672830"},
 ]
 
 [[package]]

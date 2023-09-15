@@ -7,6 +7,9 @@ init:
 test:
 	pdm run pytest --ignore=.venv --ignore=__pypackages__ -rP .
 
+profile:
+	pdm run python -m kernprof -lv tests/profile.py
+
 dev:
 	pdm run ${EDITOR} src/tenpo/__main__.py
 
