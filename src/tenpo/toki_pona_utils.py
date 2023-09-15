@@ -68,7 +68,6 @@ UNIDECODE_RE = re.compile(UNIDECODE_RE)
 
 COMMON_ALLOWABLES = {
     "cw",
-    "yupekosi",  # breaks alphabet, Pingo excluded
     "x",  # ala
     "y",  # anu
     "kxk",  # ken ala ken
