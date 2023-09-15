@@ -21,6 +21,7 @@ dependencies = [
     "sqlalchemy-json",
     "unidecode",
     "emoji",
+    "async-cache>=1.1.1",
 ]
 requires-python = ">=3.10"
 license = { text = "" }

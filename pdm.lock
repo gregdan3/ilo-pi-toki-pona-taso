@@ -6,7 +6,7 @@ groups = ["default", "dev"]
 cross_platform = true
 static_urls = false
 lock_version = "4.3"
-content_hash = "sha256:d1f11e37bcfe8c1f1fb11bc50370873c55a08b72cf7c65e0bf10c78f8cc73c9e"
+content_hash = "sha256:05ec20b62731dcf340d82bb4e2ebec86f40a09c7c829ba0ce3e24d84297b5c20"
 
 [[package]]
 name = "aiodns"
@@ -149,6 +149,15 @@ dependencies = [
 files = [
     {file = "anyio-3.7.1-py3-none-any.whl", hash = "sha256:91dee416e570e92c64041bd18b900d1d6fa78dff7048769ce5ac5ddad004fbb5"},
     {file = "anyio-3.7.1.tar.gz", hash = "sha256:44a3c9aba0f5defa43261a8b3efb97891f2bd7d804e0e1f56419befa1adfc780"},
+]
+
+[[package]]
+name = "async-cache"
+version = "1.1.1"
+requires_python = ">=3.3"
+summary = "An asyncio Cache"
+files = [
+    {file = "async-cache-1.1.1.tar.gz", hash = "sha256:81aa9ccd19fb06784aaf30bd5f2043dc0a23fc3e998b93d0c2c17d1af9803393"},
 ]
 
 [[package]]
