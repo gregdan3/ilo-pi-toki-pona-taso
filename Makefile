@@ -5,7 +5,7 @@ init:
 	pdm sync --dev
 
 test:
-	pdm run pytest --ignore=.venv --ignore=__pypackages__ -rP .
+	pdm run pytest tests/ -m "not skip"
 
 profile:
 	pdm run python -m kernprof -lv tests/profile.py

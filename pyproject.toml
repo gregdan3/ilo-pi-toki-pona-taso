@@ -1,11 +1,3 @@
-[tool.pdm.dev-dependencies]
-dev = [
-    "black>=23.1.0",
-    "isort~=5.9",
-    "pytest-asyncio>=0.20.3",
-    "line-profiler>=4.1.1",
-]
-
 [project]
 name = "tenpo"
 version = "1.0.0"
@@ -27,6 +19,7 @@ dependencies = [
     "sqlalchemy-json",
     "unidecode",
     "emoji",
+    "marisa-trie>=1.0.0",
 ]
 requires-python = ">=3.10"
 license = { text = "" }
@@ -52,3 +45,14 @@ exclude = ["**/__pycache__", "**/__pypackages__", "**/.venv"]
 venvPath = "."
 venv = ".venv"
 executionEnvironments = [{ root = "." }]
+
+[tool.pdm.dev-dependencies]
+dev = [
+    "black>=23.1.0",
+    "isort~=5.9",
+    "pytest-asyncio>=0.20.3",
+    "line-profiler>=4.1.1",
+    "hypothesis>=6.86.1",
+    "pytest-skip-slow>=0.0.5",
+]
+

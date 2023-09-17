@@ -2,24 +2,49 @@
 Collection of verifiers for determining if a string is or is not Toki Pona.
 Each function is responsible for its own pre-processing.
 
-`_is_toki_pona_ascii` would want to strip consecutive duplicate letters so a statement such as "mi wileeeee" would match.
-`_is_toki_pona_unidecode` may not want to do this, such as for syllabaries: わわ (wawa) errantly becomes わ (wa).
+`_is_tp_loose` and `is_tp_strict` would want to strip consecutive duplicate letters so "mi wileeeee" matches.
+`_is_tp_unicode` may not want to do this, such as for syllabaries: わわ (wawa) errantly becomes わ (wa).
 
 """
 
 # STL
 import re
-from typing import List
+import enum
+import json
+import urllib.request
+from typing import List, Callable
 from functools import partial
 from collections import OrderedDict
 
 # PDM
 import unidecode
+from marisa_trie import Trie
 
 # LOCAL
 from tenpo.log_utils import getLogger
 
+SentenceCleaner = Callable[[str], str]
+Tokenizer = Callable[[str], List[str]]
+TokenFilter = Callable[[List[str]], List[str]]
+TokenCleaner = Callable[[str], str]
+TokenValidator = Callable[[str], bool]
+SentenceScorer = Callable[[int, int, float], bool]
+
+
 LOG = getLogger()
+
+
+class NasinToki(enum.IntEnum):
+    FAIL = 0
+    DICTIONARY = 10
+    STRICT = 20
+    LOOSE = 30
+    ALPHABETIC = 40
+    UNICODE = 50
+    PHONEMIC = 60
+    FALLBACK = 90
+    PASS = 100
+
 
 VOWELS = "aeiou"
 CONSONANTS = "jklmnpstw"
@@ -52,13 +77,19 @@ SENT_CLEANERS = [
     partial(re.sub, EMOTES_RE, " "),
 ]
 
-STRICT_RE = (
-    rf"^(?:(?:^[{VOWELS}]|[klmnps][{VOWELS}]|[jt][aeou]|[w][aei])(?:n(?![mn]))?)+$"
+STRICT_ASCII_RE = (
+    rf"^((^[{VOWELS}]|[klmnps][{VOWELS}]|[jt][aeou]|[w][aei])(n(?![mn]))?)+$"
 )
-STRICT_RE = re.compile(STRICT_RE)
+STRICT_ASCII_RE = re.compile(STRICT_ASCII_RE)
 
-ASCII_RE = rf"^(?:[{CONSONANTS}]?[{VOWELS}]n?)(?:[{CONSONANTS}][{VOWELS}]n?)*|n$"
-ASCII_RE = re.compile(ASCII_RE)
+STRICT_ASCII_ALLOW_N_RE = (
+    rf"^((^[{VOWELS}]|[klmnps][{VOWELS}]|[jt][aeou]|[w][aei])(n(?![mn]))?)+|n$"
+)
+STRICT_ASCII_ALLOW_N_RE = re.compile(STRICT_ASCII_ALLOW_N_RE)
+
+
+LOOSE_ASCII_RE = rf"^([{CONSONANTS}]?[{VOWELS}]n?)([{CONSONANTS}][{VOWELS}]n?)*|n$"
+LOOSE_ASCII_RE = re.compile(LOOSE_ASCII_RE)
 
 ALPHABET_RE = rf"^(?:[{ALPHABET}]*$)"
 ALPHABET_RE = re.compile(ALPHABET_RE)
@@ -76,14 +107,39 @@ COMMON_ALLOWABLES = {
 
 TOKEN_FILTERS = [
     lambda s: s.isalpha(),  # is all alphabetical; removes ""
-    lambda s: not (s == s.capitalize()),  # is not Capitalized; passes ALL CAPS
-    lambda s: s not in COMMON_ALLOWABLES,  # TODO: filter or part of scoring?
+    lambda s: not (s == s.capitalize()),  # Proper Names Fail; lowercase/ALL CAPS PASS
+    lambda s: s not in COMMON_ALLOWABLES,  # NOTE: Counted in nimi_ale in __is_toki_pona
 ]
 TOKEN_CLEANERS = [
     # NOTE: ORDER MATTERS
     lambda s: s.lower(),  # lowercase
     partial(re.sub, CONSECUTIVE_DUPLICATES_RE, r"\1"),  # rm consecutive duplicates
 ]
+
+JASIMA_LINK = "https://linku.la/jasima/data.json"
+
+
+def download(link: str) -> str:
+    return urllib.request.urlopen(link).read().decode("utf8")
+
+
+JASIMA = json.loads(download(JASIMA_LINK))
+JASIMA = JASIMA["data"]
+DICTIONARY = [
+    key
+    for key in JASIMA.keys()
+    if int(JASIMA[key]["recognition"]["2023-09"]) > 22
+    # at and below 22, words break phonotactics
+    # violates my assumption that verifier methods get stronger
+]
+DICTIONARY_SET = set(DICTIONARY)
+DICTIONARY_TRIE = Trie(DICTIONARY)
+
+
+ENGLISH_WORDS_LINK = (
+    "https://raw.githubusercontent.com/dwyl/english-words/master/words_alpha.txt"
+)
+ENGLISH_WORDS = download(ENGLISH_WORDS_LINK)
 
 
 def tokenize(s: str) -> List[str]:
@@ -92,12 +148,12 @@ def tokenize(s: str) -> List[str]:
 
 
 def filter_tokens_ascii(tokens: List[str]):
-    """Filter list of tokens to only words that should be determined to be Toki Pona or not.
+    """Remove tokens which should not be checked for toki-pona-ness.
 
     According to TOKEN_FILTERS:
-    - Remove non-alphabetic strings
-    - Remove strings which are Capitalized, but not ALL CAPS
-    - Remove strings matching any in COMMON_ALLOWABLES
+    - Remove non-alphabetic tokens
+    - Remove tokens which are Capitalized, but not ALL CAPS
+    - Remove tokens in COMMON_ALLOWABLES
     """
     for filter in TOKEN_FILTERS:
         tokens = [token for token in tokens if filter(token)]
@@ -120,6 +176,7 @@ def clean_token(s: str, skip_dedupe=False) -> str:
     According to TOKEN_CLEANERS:
     - Make string lowercase
     - Remove consecutive duplicates from string
+    - Remove strings matching any in COMMON_ALLOWABLES
     """
     for cleaner in TOKEN_CLEANERS:
         s = cleaner(s)
@@ -129,97 +186,174 @@ def clean_token(s: str, skip_dedupe=False) -> str:
     return s
 
 
-def is_toki_pona(s: str, p: float = 0.9, mode: str = "alphabet") -> bool:
+def score(nimi_ike: int, nimi_ale: int, p: float):
+    return (nimi_ike / nimi_ale) <= (1 - p)
+
+
+#############
+# VERIFIERS #
+#############
+
+
+def __is_toki_pona(
+    s: str,
+    p: float,
+    clean_sentence: SentenceCleaner,
+    tokenize: Tokenizer,
+    filter_tokens: TokenFilter,
+    clean_token: TokenCleaner,
+    is_valid_token: TokenValidator,
+    score: SentenceScorer,
+) -> bool:
+    s = clean_sentence(s)
+    nimi = tokenize(s)
+    nimi_ale = len(nimi)
+    if not nimi_ale:
+        return True
+
+    nimi = filter_tokens(nimi)
+    nimi_ike = 0
+    for n in nimi:
+        n = clean_token(n)
+        if not is_valid_token(n):
+            nimi_ike += 1
+    return score(nimi_ike, nimi_ale, p)
+
+
+def is_toki_pona(
+    s: str, p: float = 0.9, mode: NasinToki = NasinToki.ALPHABETIC
+) -> bool:
     """
     Determine if a given string is Toki Pona:
     - for the portion of words `p`
     - with the mode `mode`
-    Default to "ascii" mode that allows wuwojitinmanna
+    Default to "alphabet" mode, counting strings made of only letters in Toki Pona's alphabet
     """
     return VERIFIER_MAP[mode](s, p)
 
 
-def _is_toki_pona_dict(s: str, p: float) -> bool:
+def __token_is_tp_dict_set(s: str) -> bool:
+    return s in DICTIONARY_SET
+
+
+def __token_is_tp_dict_trie(s: str) -> bool:
+    """Slower than _token_is_toki_pona_dict_set"""
+    return s in DICTIONARY_TRIE
+
+
+def _token_is_tp_dict(s: str) -> bool:
+    return __token_is_tp_dict_set(s)
+
+
+def _is_tp_dictionary(s: str, p: float) -> bool:
     """Check that a sufficient portion of words are in jasima Linku"""
-    return False
+    return __is_toki_pona(
+        s=s,
+        p=p,
+        clean_sentence=clean_sentence,
+        tokenize=tokenize,
+        filter_tokens=filter_tokens_ascii,
+        clean_token=clean_token,
+        is_valid_token=_token_is_tp_dict,
+        score=score,
+    )
 
 
-def _is_toki_pona_ascii_strict(s: str, p: float) -> bool:
-    """Assert the portion of tokens p in string s adhere to Toki Pona's phonotactics, preventing wu wo ji ti nm nn"""
-    return False
+def _token_is_tp_strict(s: str) -> bool:
+    return not not re.fullmatch(STRICT_ASCII_ALLOW_N_RE, s)
 
 
-def _token_is_toki_pona_ascii(s: str) -> bool:
-    s = clean_token(s)
-    return not not re.fullmatch(ASCII_RE, s)
+def _is_tp_strict(s: str, p: float) -> bool:
+    """Assert the portion of tokens p in string s adhere to Toki Pona's phonotactics, preventing wu wo ji ti nm nn. **Allows 'n' alone.**"""
+
+    return __is_toki_pona(
+        s=s,
+        p=p,
+        clean_sentence=clean_sentence,
+        tokenize=tokenize,
+        filter_tokens=filter_tokens_ascii,
+        clean_token=clean_token,
+        is_valid_token=_token_is_tp_strict,
+        score=score,
+    )
 
 
-def _is_toki_pona_ascii(s: str, p: float) -> bool:
+def _token_is_tp_loose(s: str) -> bool:
+    return not not re.fullmatch(LOOSE_ASCII_RE, s)
+
+
+def _is_tp_loose(s: str, p: float) -> bool:
     """Assert the portion of tokens p in string s adhere to Toki Pona's phonotactics, allowing wu wo ji ti nm nn"""
-    s = clean_sentence(s)
-    tokens = tokenize(s)
-    tokens = filter_tokens_ascii(tokens)
-    nimi_pona = len(tokens)
-    # NOTE: could get this from pre-filter tokens; would be more lenient but less accurate (double spaces produce empty strings)
-    nimi_ike = 0
-    for token in tokens:
-        if not _token_is_toki_pona_ascii(token):
-            nimi_ike += 1
-    return (nimi_ike / nimi_pona) <= (1 - p) if nimi_pona > 0 else True
+
+    return __is_toki_pona(
+        s=s,
+        p=p,
+        clean_sentence=clean_sentence,
+        tokenize=tokenize,
+        filter_tokens=filter_tokens_ascii,
+        clean_token=clean_token,
+        is_valid_token=_token_is_tp_loose,
+        score=score,
+    )
 
 
-def _token_is_toki_pona_alphabetic_set(s: str) -> bool:
-    s = clean_token(s, skip_dedupe=True)
+def __token_is_tp_alphabetic_set(s: str) -> bool:
     return set(s).issubset(ALPHABET_SET)
 
 
-def _token_is_toki_pona_alphabetic_regex(s: str) -> bool:
+def __token_is_tp_alphabetic_regex(s: str) -> bool:
     """
-    DO NOT USE
     Slower than _token_is_toki_pona_alphabetic_set
     """
-    s = clean_token(s)
     return not not re.fullmatch(ALPHABET_RE, s)
 
 
-def _is_toki_pona_alphabetic(s: str, p: float) -> bool:
+def _token_is_tp_alphabetic(s: str) -> bool:
+    return __token_is_tp_alphabetic_set(s)
+
+
+def _is_tp_alphabetic(s: str, p: float) -> bool:
     """Assert the portion of tokens p in string s contain all the letters of Toki Pona's alphabet"""
-    s = clean_sentence(s)
-    tokens = tokenize(s)
-    tokens = filter_tokens_ascii(tokens)
-    nimi_pona = len(tokens)
-    # NOTE: could get this from pre-filter tokens; would be more lenient but less accurate (double spaces produce empty strings)
-    nimi_ike = 0
-    for token in tokens:
-        if not _token_is_toki_pona_alphabetic_set(token):
-            nimi_ike += 1
-    return (nimi_ike / nimi_pona) <= (1 - p) if nimi_pona > 0 else True
+
+    return __is_toki_pona(
+        s=s,
+        p=p,
+        clean_sentence=clean_sentence,
+        tokenize=tokenize,
+        filter_tokens=filter_tokens_ascii,
+        clean_token=partial(clean_token, skip_dedupe=True),  # saves time
+        is_valid_token=_token_is_tp_alphabetic,
+        score=score,
+    )
 
 
-def _is_toki_pona_unidecode(s: str, p: float) -> bool:
+def _is_tp_unicode(s: str, p: float) -> bool:
     """Unidecode a non-ascii string and assert ascii loosely"""
     return False
 
 
-def _is_toki_pona_phonemic(s: str, p: float) -> bool:
+def _is_tp_phonemic(s: str, p: float) -> bool:
     return False
 
 
-def _is_toki_pona_fallback(s: str, p: float) -> bool:
+def _is_tp_fallback(s: str, p: float) -> bool:
     """Progressively weaker verification"""
-    for mode, verifier in VERIFIER_MAP.items():
-        if mode == "fallback":
+    for mode in NasinToki:
+        if mode == NasinToki.FALLBACK:
             return False
+        verifier = VERIFIER_MAP[mode]
         if r := verifier(s, p):
             return r
     return False  # should be redundant
 
 
 VERIFIER_MAP = OrderedDict()  # ordered by strongest to weakest
-VERIFIER_MAP["dict"] = _is_toki_pona_dict
-VERIFIER_MAP["strict"] = _is_toki_pona_ascii_strict
-VERIFIER_MAP["ascii"] = _is_toki_pona_ascii
-VERIFIER_MAP["alphabet"] = _is_toki_pona_alphabetic
-VERIFIER_MAP["unidecode"] = _is_toki_pona_unidecode
-VERIFIER_MAP["phonemic"] = _is_toki_pona_phonemic
-VERIFIER_MAP["fallback"] = _is_toki_pona_fallback
+VERIFIER_MAP[NasinToki.FAIL] = lambda *_, **__: False
+VERIFIER_MAP[NasinToki.DICTIONARY] = _is_tp_dictionary
+VERIFIER_MAP[NasinToki.STRICT] = _is_tp_strict
+VERIFIER_MAP[NasinToki.LOOSE] = _is_tp_loose
+VERIFIER_MAP[NasinToki.ALPHABETIC] = _is_tp_alphabetic
+VERIFIER_MAP[NasinToki.UNICODE] = _is_tp_unicode
+VERIFIER_MAP[NasinToki.PHONEMIC] = _is_tp_phonemic
+VERIFIER_MAP[NasinToki.FALLBACK] = _is_tp_fallback
+VERIFIER_MAP[NasinToki.PASS] = lambda *_, **__: True
