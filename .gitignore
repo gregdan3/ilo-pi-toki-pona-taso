@@ -7,3 +7,5 @@ __pycache__
 userdata/*
 .python-version
 *.lprof
+
+tests/corpus
