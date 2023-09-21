@@ -14,7 +14,7 @@ from discord.ext.commands import Cog
 from tenpo.db import Container
 from tenpo.__main__ import DB
 from tenpo.log_utils import getLogger
-from tenpo.chat_utils import DEFAULT_REACTS, codeblock_wrap
+from tenpo.chat_utils import codeblock_wrap
 from tenpo.phase_utils import is_major_phase
 from tenpo.toki_pona_utils import is_toki_pona
 
@@ -277,9 +277,7 @@ sina wile ala e weka la o kepeken `/lawa nasin`""",
 
 async def get_react(eid: int):
     reacts = await DB.get_reacts(eid)
-    if reacts:
-        return random.choice(reacts)
-    return random.choice(DEFAULT_REACTS)
+    return random.choice(reacts)
 
 
 async def send_dm_to_user(user: User | Member, message: str):

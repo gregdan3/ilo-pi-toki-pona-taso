@@ -1,6 +1,6 @@
 # TODO: REFACTOR: Implement rules logic in DB layer as singular function
 # TODO: REFACTOR: Divide DB interface based on purpose i.e. entity evaluation, image handling, calendar handling, etc
-#
+
 # STL
 import enum
 import uuid
@@ -47,11 +47,52 @@ Base = declarative_base()
 JSONPrimitive = Optional[str | int | bool]
 JSONType = JSONPrimitive | List[JSONPrimitive] | Dict[JSONPrimitive, JSONPrimitive]
 
+DEFAULT_REACTS = [
+    "🌵",
+    "🌲",
+    "🌲",
+    "🌲",
+    "🌲",
+    "🌲",
+    "🌳",
+    "🌳",
+    "🌳",
+    "🌳",
+    "🌳",
+    "🌴",
+    "🌴",
+    "🌴",
+    "🌴",
+    "🌴",
+    "🌱",
+    "🌱",
+    "🌱",
+    "🌱",
+    "🌱",
+    "🌿",
+    "🌿",
+    "🌿",
+    "🌿",
+    "🌿",
+    "🍀",
+    "🍃",
+    "🍂",
+    "🍁",
+    "🌷",
+    "🌺",
+    "🌻",
+    "🐝",
+    "🐌",
+    "🐛",
+    "🐞",
+    "🦋",
+]
+
 
 class Action(enum.Enum):
-    INSERT = "INSERT"
-    UPDATE = "UPDATE"
-    DELETE = "DELETE"
+    INSERT = "pana"
+    UPDATE = "ante"
+    DELETE = "weka"
 
 
 class Container(enum.Enum):
@@ -192,7 +233,10 @@ class TenpoDB:
         await self.__set_config_item(eid, ConfigKey.REACTS, reacts)
 
     async def get_reacts(self, eid: int) -> List[str]:
-        return cast(List[str], await self.__get_config_item(eid, ConfigKey.REACTS))
+        return cast(
+            List[str],
+            await self.__get_config_item(eid, ConfigKey.REACTS, DEFAULT_REACTS),
+        )
 
     async def set_disabled(self, eid: int, disabled: bool):
         await self.__set_config_item(eid, ConfigKey.DISABLED, disabled)

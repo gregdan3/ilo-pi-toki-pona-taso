@@ -303,7 +303,7 @@ async def build_rule_resp(
     exception: bool,
 ):
     container_ = CONTAINER_MAP[ctype]
-    verb = ACTION_MAP[action]
+    verb = action.value
     formatted = (
         format_channel(container.id)
         if ctype != Container.GUILD

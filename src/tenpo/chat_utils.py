@@ -4,7 +4,7 @@ import re
 from typing import List
 
 # LOCAL
-from tenpo.db import Action, Container
+from tenpo.db import DEFAULT_REACTS, Container
 from tenpo.log_utils import getLogger
 from tenpo.toki_pona_utils import EMOTES_RE
 
@@ -15,53 +15,6 @@ CONTAINER_MAP = {
     Container.CATEGORY: "kulupu",
     Container.GUILD: "ma",
 }
-ACTION_MAP = {
-    Action.INSERT: "pana",
-    Action.UPDATE: "ante",
-    Action.DELETE: "weka",
-}
-
-
-DEFAULT_REACTS = [
-    "🌵",
-    "🌲",
-    "🌲",
-    "🌲",
-    "🌲",
-    "🌲",
-    "🌳",
-    "🌳",
-    "🌳",
-    "🌳",
-    "🌳",
-    "🌴",
-    "🌴",
-    "🌴",
-    "🌴",
-    "🌴",
-    "🌱",
-    "🌱",
-    "🌱",
-    "🌱",
-    "🌱",
-    "🌿",
-    "🌿",
-    "🌿",
-    "🌿",
-    "🌿",
-    "🍀",
-    "🍃",
-    "🍂",
-    "🍁",
-    "🌷",
-    "🌺",
-    "🌻",
-    "🐝",
-    "🐌",
-    "🐛",
-    "🐞",
-    "🦋",
-]
 
 
 def get_discord_reacts(s: str):
