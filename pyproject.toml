@@ -20,6 +20,7 @@ dependencies = [
     "unidecode",
     "emoji",
     "marisa-trie>=1.0.0",
+    "croniter>=1.4.1",
 ]
 requires-python = ">=3.10"
 license = { text = "" }
