@@ -249,10 +249,8 @@ class TenpoDB:
         await self.set_disabled(eid, to_set)
         return to_set
 
-    async def get_opens(self, eid: int):
-        opens = (
-            cast(List[str], await self.__get_config_item(eid, ConfigKey.OPENS)) or []
-        )
+    async def get_opens(self, eid: int) -> List[str]:
+        opens = cast(List[str], await self.__get_config_item(eid, ConfigKey.OPENS, []))
         return opens
 
     async def toggle_open(self, eid: int, open: str) -> bool:
@@ -490,3 +488,33 @@ class TenpoDB:
             raise ValueError("No icon/banner found with the given name for the guild")
 
         await self.__set_default_icon_banner(guild_id, icon_banner_id)
+
+    async def in_checked_channel(
+        self, eid: int, channel_id: int, category_id: int, guild_id: int
+    ):
+        rules, exceptions = await self.list_rules(eid)
+
+        if channel_id in rules[Container.CHANNEL]:
+            return True
+        if channel_id in exceptions[Container.CHANNEL]:
+            return False
+
+        if category_id in rules[Container.CATEGORY]:
+            return True
+        if category_id in exceptions[Container.CATEGORY]:
+            return False
+
+        if guild_id in rules[Container.GUILD]:
+            return True
+        # guilds cannot have exceptions
+        # if guild_id in exceptions[Container.GUILD]:
+        #     return False
+
+        return False
+
+    async def startswith_ignorable(self, eid: int, message: str):
+        opens = await self.get_opens(eid)
+        for ignorable in opens:
+            if message.startswith(ignorable):
+                return True
+        return False

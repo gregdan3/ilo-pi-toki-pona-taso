@@ -12,8 +12,7 @@ from tenpo.db import Action, Container
 from tenpo.types import DiscordActor, DiscordContainer, MessageableGuildChannel
 from tenpo.__main__ import DB
 from tenpo.log_utils import getLogger
-from tenpo.chat_utils import (
-    ACTION_MAP,
+from tenpo.str_utils import (
     CONTAINER_MAP,
     format_reacts,
     format_channel,
