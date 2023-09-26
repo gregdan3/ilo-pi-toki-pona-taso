@@ -76,12 +76,14 @@ class CogRules(Cog):
             "mi kama ante ala e nimi pi tomo __%s__ la sina ken ante e ona" % tomo.name
         )
 
-    @guild_rules.command(name="lukin", description="mi o lukin ala lukin?")
+    @guild_rules.command(name="lukin", description="mi o lukin ala lukin e ma?")
     @commands.has_permissions(administrator=True)
-    async def guild_toggle_disabled(self, ctx: ApplicationContext):
+    @option(name="lukin", choices=["lukin", "ala"])
+    async def guild_set_disabled(self, ctx: ApplicationContext, lukin: str):
         actor = ctx.guild
         assert actor
-        return await cmd_toggle_disabled(ctx, actor, ephemeral=False)
+        lukin = cast(LukinOptions, lukin)
+        return await cmd_set_disabled(ctx, actor, lukin, ephemeral=False)
 
     @guild_rules.command(name="tomo", description="o ante e lawa tomo")
     @option(name="tomo", description="lon tomo seme")
@@ -141,10 +143,12 @@ class CogRules(Cog):
         await cmd_list_rules(ctx, actor, ephemeral=True)
 
     @user_rules.command(name="lukin", description="mi o lukin ala lukin?")
-    async def user_toggle_disabled(self, ctx: ApplicationContext):
+    @option(name="lukin", choices=["lukin", "ala"])
+    async def user_set_disabled(self, ctx: ApplicationContext, lukin: str):
         actor = ctx.user
         assert actor
-        return await cmd_toggle_disabled(ctx, actor, ephemeral=True)
+        lukin = cast(LukinOptions, lukin)  # pycord sucks
+        return await cmd_set_disabled(ctx, actor, lukin, ephemeral=True)
 
     @user_rules.command(name="nasin", description="sina toki pona ala la mi o seme?")
     @option(name="nasin", choices=["sitelen", "weka"])
@@ -287,11 +291,29 @@ async def cmd_toggle_rule(
     await ctx.respond(response, ephemeral=ephemeral)
 
 
-async def cmd_toggle_disabled(
-    ctx: ApplicationContext, actor: DiscordActor, ephemeral: bool
+async def cmd_set_disabled(
+    ctx: ApplicationContext,
+    actor: DiscordActor,
+    _disabled: LukinOptions,
+    ephemeral: bool,
 ):
-    result = await DB.toggle_disabled(actor.id)
-    resp = "mi kama lukin ala" if result else "mi kama lukin"
+    disabled = False
+    if _disabled == "ala":
+        disabled = True
+
+    prev_disabled = await DB.get_disabled(actor.id)
+
+    pverb = "kama"
+    if prev_disabled == disabled:
+        pverb = "awen"
+
+    verb = "lukin"
+    if disabled:
+        verb = "lukin ala"
+    resp = f"mi {pverb} {verb}"
+
+    assert isinstance(disabled, bool)
+    await DB.set_disabled(actor.id, disabled)
     await ctx.respond(resp, ephemeral=ephemeral)
 
 
@@ -387,7 +409,7 @@ async def cmd_lawa_help(ctx: ApplicationContext, actor: DiscordActor, ephemeral:
     sona = "mi __ilo pi toki pona taso__. sina toki pona ala la mi pona e ni. o lukin e ken mi:\n"
     sona += f"- `{prefix} sona`: mi pana e toki ni.\n"
     sona += f"- `{prefix} ale`: mi pana e lawa ale sina.\n"
-    sona += f"- `{prefix} lukin`: mi lukin ala. sina ni sin la mi lukin.\n"
+    sona += f"- `{prefix} lukin [lukin]`: mi lukin ala lukin e toki sina.\n"
 
     sona += f"- `{prefix} [tomo|kulupu|ma] (ala)`: mi lukin e ijo. sina pana sin e ijo la mi lukin ala.\n"
     sona += f"  - sina toki pona ala lon ijo la mi pona e ni.\n"
