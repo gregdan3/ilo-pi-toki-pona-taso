@@ -4,7 +4,7 @@ import re
 from typing import List
 
 # LOCAL
-from tenpo.db import DEFAULT_REACTS, IjoSiko, Pali
+from tenpo.db import DEFAULT_REACTS, Pali, IjoSiko, IjoPiLawaKen
 from tenpo.log_utils import getLogger
 from tenpo.toki_pona_utils import EMOTES_RE
 
@@ -80,7 +80,7 @@ def format_guild(id: int):
 
 def format_rules(rules, prefix):
     rules_str = prefix + ": \n"
-    for val in IjoSiko:
+    for val in IjoPiLawaKen:
         if not rules[val]:
             continue
 
