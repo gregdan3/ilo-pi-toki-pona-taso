@@ -3,33 +3,25 @@
 
 # STL
 import enum
-import uuid
-from typing import Any, Set, Dict, List, Tuple, Optional, cast
+from typing import Any, Set, Dict, List, Tuple, Literal, Optional, TypeAlias, cast
 from datetime import datetime
 from contextlib import asynccontextmanager
 
 # PDM
 from asyncinit import asyncinit
 from sqlalchemy import (
-    JSON,
     Enum,
     Column,
-    String,
     Boolean,
-    DateTime,
     BigInteger,
     ForeignKey,
-    LargeBinary,
     CheckConstraint,
-    UniqueConstraint,
     PrimaryKeyConstraint,
-    and_,
     delete,
     select,
-    update,
 )
 from sqlalchemy.orm import relationship, declarative_base
-from sqlalchemy_json import NestedMutableJson, mutable_json_type
+from sqlalchemy_json import NestedMutableJson
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -37,15 +29,15 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 from sqlalchemy.dialects.sqlite import Insert as insert
-from sqlalchemy_utils.types.uuid import UUIDType as UUID
 
 # LOCAL
 from tenpo.log_utils import getLogger
 
 LOG = getLogger()
 Base = declarative_base()
-JSONPrimitive = Optional[str | int | bool]
-JSONType = JSONPrimitive | List[JSONPrimitive] | Dict[JSONPrimitive, JSONPrimitive]
+JSONType: TypeAlias = (
+    dict[str, "JSONType"] | list["JSONType"] | str | int | float | bool | None
+)
 
 DEFAULT_REACTS = [
     "🌵",
@@ -87,20 +79,23 @@ DEFAULT_REACTS = [
     "🐞",
     "🦋",
 ]
+DEFAULT_RESPONSE = "sitelen"
+DEFAULT_TIMER = "ala"
 
 
-class Action(enum.Enum):
-    INSERT = "pana"
-    UPDATE = "ante"
-    DELETE = "weka"
+class Pali(enum.Enum):
+    PANA = 0
+    ANTE = 1
+    WEKA = 2
 
 
-class Container(enum.Enum):
+class IjoSiko(enum.Enum):
     # We HAVE to know what the type is when we read it from the DB
     # or else we're forced to ask discord which is which
     GUILD = "GUILD"
     CATEGORY = "CATEGORY"
     CHANNEL = "CHANNEL"
+    USER = "USER"
 
 
 class ConfigKey(enum.Enum):
@@ -111,16 +106,31 @@ class ConfigKey(enum.Enum):
 
     # guild only
     ROLE = "role"
-    ICON = "icon"  # guild's singleton
-    CALENDAR = "calendar"
+    CALENDAR = "calendar"  # moon calendar channel
+    CRON = "cron"  # cron string
+    LENGTH = "length"  # timedelta
+    TIMER = "timer"  # timing method (cron, ale, ala)
 
     # both
     DISABLED = "disabled"
 
 
-class IconConfigs(enum.Enum):
-    AUTHOR = "author"
-    EVENTS = "events"
+class ConfigKeyTypes(enum.Enum):
+    REACTS = List[str]
+    OPENS = List[str]
+    RESPONSE = Literal["sitelen", "weka"]
+
+    ROLE = int  # role id
+    CALENDAR = int  # channel id
+    CRON = str
+    LENGTH = str  # TODO
+    TIMER = str
+
+    DISABLED = bool
+
+
+Lawa = Dict[IjoSiko, Set[int]]
+IjoPiLawaKen = [IjoSiko.GUILD, IjoSiko.CATEGORY, IjoSiko.CHANNEL]
 
 
 class Entity(Base):
@@ -128,44 +138,21 @@ class Entity(Base):
     id = Column(BigInteger, primary_key=True, nullable=False)
     config = Column(NestedMutableJson, nullable=False, default={})
 
-    rules = relationship("Rules", back_populates="entity")
-    icons_banners = relationship("IconsBanners", back_populates="entity")
+    rules = relationship("Rules", back_populates=__tablename__)
 
 
 class Rules(Base):
     __tablename__ = "rules"
     id = Column(BigInteger, nullable=False)  # this is the container id
     eid = Column(BigInteger, ForeignKey("entity.id"), nullable=False)
-    ctype = Column(Enum(Container), nullable=False)
+    ctype = Column(Enum(IjoSiko), nullable=False)
     exception = Column(Boolean, nullable=False, default=False)
 
-    entity = relationship("Entity", back_populates="rules")
+    entity = relationship("Entity", back_populates=__tablename__)
 
     __table_args__ = (
         PrimaryKeyConstraint("id", "eid"),
-        CheckConstraint(  # enums aren't in sqlite and we only perform this check on insert so sure
-            ctype.in_([e.value for e in Container]),
-            name="check_ctype_valid",
-        ),
-    )
-
-
-class IconsBanners(Base):
-    # conjoined due to pair relationship
-    __tablename__ = "icons_banners"
-    id = Column(UUID, primary_key=True, default=uuid.uuid4, unique=True, nullable=False)
-    guild_id = Column(BigInteger, ForeignKey("entity.id"), nullable=False)
-    name = Column(String, nullable=False)
-    last_used = Column(DateTime, nullable=False)
-    config = Column(mutable_json_type(dbtype=JSON, nested=True), nullable=True)
-
-    icon = Column(LargeBinary, nullable=False)
-    banner = Column(LargeBinary, nullable=True)
-
-    entity = relationship("Entity", back_populates="icons_banners")
-
-    __table_args__ = (
-        UniqueConstraint("guild_id", "name", name="unique_guild_id_name"),
+        CheckConstraint(ctype.in_(IjoPiLawaKen), name="check_ctype_valid"),
     )
 
 
@@ -178,7 +165,7 @@ class TenpoDB:
     Any function which
     - exposes a session parameter
     - exposes a config key parameter
-    Must be protected (`__methodname__`).
+    Must be protected (`__methodname`).
     """
 
     async def __init__(self, database_file: str):
@@ -198,10 +185,9 @@ class TenpoDB:
     async def __get_entity(self, s: AsyncSession, eid: int) -> Entity:
         stmt = select(Entity).where(Entity.id == eid)
         result = await s.execute(stmt)
-        entity = result.scalar_one_or_none()
 
-        if entity is None:
-            entity = Entity(id=eid, config={})  # TODO: do better?
+        if (entity := result.scalar_one_or_none()) is None:
+            entity = Entity(id=eid, config={})
             s.add(entity)
             await s.commit()
         return entity
@@ -242,7 +228,7 @@ class TenpoDB:
         await self.__set_config_item(eid, ConfigKey.DISABLED, disabled)
 
     async def get_disabled(self, eid: int) -> bool:
-        return cast(bool, await self.__get_config_item(eid, ConfigKey.DISABLED))
+        return cast(bool, await self.__get_config_item(eid, ConfigKey.DISABLED, False))
 
     async def toggle_disabled(self, eid: int) -> bool:
         to_set = not await self.get_disabled(eid)
@@ -276,9 +262,26 @@ class TenpoDB:
         await self.set_role(eid, to_assign)
         return not is_same  # true = wrote, false = deleted
 
-    async def get_response(self, eid: int) -> Optional[str]:
-        return await self.__get_config_item(eid, ConfigKey.RESPONSE, "sitelen")
-        # TODO: assert values that can exist in a given key
+    async def get_cron(self, eid: int):
+        return await self.__get_config_item(eid, ConfigKey.CRON)
+
+    async def set_cron(self, eid: int, cron: str):
+        return await self.__set_config_item(eid, ConfigKey.CRON, cron)
+
+    async def get_length(self, eid: int):
+        return await self.__get_config_item(eid, ConfigKey.LENGTH)
+
+    async def set_length(self, eid: int, length: str):
+        return await self.__set_config_item(eid, ConfigKey.LENGTH, length)
+
+    async def get_timer(self, eid: int) -> str:  # DEFAULT: never
+        return await self.__get_config_item(eid, ConfigKey.TIMER, DEFAULT_TIMER)
+
+    async def set_timer(self, eid: int, timer: str):
+        return await self.__set_config_item(eid, ConfigKey.TIMER, timer)
+
+    async def get_response(self, eid: int) -> str:  # DEFAULT: react
+        return await self.__get_config_item(eid, ConfigKey.RESPONSE, DEFAULT_RESPONSE)
 
     async def set_response(self, eid: int, response: str):
         return await self.__set_config_item(eid, ConfigKey.RESPONSE, response)
@@ -311,7 +314,7 @@ class TenpoDB:
         self,
         s: AsyncSession,
         id: int,
-        ctype: Container,
+        ctype: IjoSiko,
         eid: int,
         exception: bool = False,
     ):
@@ -323,8 +326,7 @@ class TenpoDB:
                 ctype=ctype,
                 exception=exception,
             )
-            .on_conflict_do_update(  # type: ignore
-                # pyright says .values can be None?
+            .on_conflict_do_update(
                 index_elements=["id", "eid"],
                 set_=dict(exception=exception),
             )
@@ -332,17 +334,17 @@ class TenpoDB:
         await s.execute(stmt)
         await s.commit()
 
-    async def __delete_rule(self, s: AsyncSession, id: int, ctype: Container, eid: int):
+    async def __delete_rule(self, s: AsyncSession, id: int, ctype: IjoSiko, eid: int):
         stmt = delete(Rules).where(
             (Rules.id == id) & (Rules.eid == eid) & (Rules.ctype == ctype)
         )
         await s.execute(stmt)
         await s.commit()
 
-    async def toggle_rule(
+    async def upsert_rule(
         self,
         id: int,
-        ctype: Container,
+        ctype: IjoSiko,
         eid: int,
         exception: bool = False,
     ):
@@ -351,8 +353,6 @@ class TenpoDB:
         Update a rule if it is in the database but different (exception field).
         Delete a rule if it is in the database.
         Return the action taken as a string.
-
-        The name is a bit disingenuous since we can upsert, but my interface only has upsert so it's *fine*.
         """
         async with self.session() as s:
             stmt = select(Rules).where(
@@ -363,26 +363,23 @@ class TenpoDB:
 
             if not rule:
                 await self.__upsert_rule(s, id, ctype, eid, exception)
-                return Action.INSERT
+                return Pali.PANA
 
             if rule.exception != exception:
                 await self.__upsert_rule(s, id, ctype, eid, exception)
-                return Action.UPDATE
+                return Pali.ANTE
 
             await self.__delete_rule(s, id, ctype, eid)
-            return Action.DELETE
+            return Pali.WEKA
 
-    async def list_rules(
-        self,
-        eid: int,
-    ) -> Tuple[Dict[Container, Set[int]], Dict[Container, Set[int]]]:
+    async def list_rules(self, eid: int) -> Tuple[Lawa, Lawa]:
         async with self.session() as s:
             stmt = select(Rules).where(Rules.eid == eid)
             result = await s.execute(stmt)
             found_rules = result.scalars().all()
 
-            rules = {val: set() for val in Container}
-            exceptions = {val: set() for val in Container}
+            rules = {val: set() for val in IjoPiLawaKen}
+            exceptions = {val: set() for val in IjoPiLawaKen}
 
             for rule in found_rules:
                 assert isinstance(rule.id, int)
@@ -392,119 +389,22 @@ class TenpoDB:
 
             return rules, exceptions
 
-    async def insert_icon_banner(
-        self,
-        guild_id: int,
-        author_id: Optional[int],
-        name: str,
-        last_used: datetime,
-        config: dict,
-        icon: bytes,
-        banner: Optional[bytes] = None,
-    ):
-        if not last_used:
-            last_used = datetime.now()
-        stmt = (
-            insert(IconsBanners)
-            .values(
-                guild_id=guild_id,
-                author_id=author_id,
-                name=name,
-                last_used=last_used,
-                config=config,
-                icon=icon,
-                banner=banner,
-            )
-            .on_conflict_do_nothing()
-        )  # TODO: user reuses name la explode at them
-        async with self.session() as s:
-            result = await s.execute(stmt)
-            await s.commit()
-            return result.inserted_primary_key[0]
-
-    async def get_icon_banner_names(self, guild_id: int) -> List[str]:
-        async with self.session() as s:
-            stmt = select(IconsBanners.name).where(IconsBanners.guild_id == guild_id)
-            result = await s.execute(stmt)
-            return [row.name for row in result.fetchall()]
-
-    async def get_event_icon_banner(self, guild_id: int):
-        """Returns the oldest non-default icon+banner pair"""
-        async with self.session() as s:
-            stmt = (
-                select(IconsBanners)
-                .where(
-                    and_(
-                        IconsBanners.guild_id == guild_id,
-                        IconsBanners.id != Entity.default_icon_banner_id,
-                    )
-                )
-                .order_by(IconsBanners.last_used.asc())
-                .limit(1)
-            )
-            result = await s.execute(stmt)
-            icon_banner = result.scalar_one_or_none()
-            return icon_banner
-
-    async def get_icon_banner_by_name(
-        self, guild_id: int, name: str
-    ) -> Optional[IconsBanners]:
-        async with self.session() as s:
-            stmt = (
-                select(IconsBanners)
-                .where(
-                    and_(
-                        IconsBanners.guild_id == guild_id,
-                        IconsBanners.name == name,
-                    )
-                )
-                .limit(1)
-            )
-            result = await s.execute(stmt)
-            icon_banner = result.scalar_one_or_none()
-            return icon_banner
-
-    async def __set_default_icon_banner(
-        self, guild_id: int, default_icon_banner_id: UUID
-    ):
-        stmt = (
-            update(Entity)
-            .where(Entity.id == guild_id)
-            .values(default_icon_banner_id=default_icon_banner_id)
-        )
-        await s.execute(stmt)
-        await s.commit()
-
-    async def set_default_icon_banner(self, guild_id: int, name: str) -> None:
-        stmt = (
-            select(IconsBanners.id)
-            .where(IconsBanners.guild_id == guild_id)
-            .where(IconsBanners.name == name)
-        )
-        result = await s.execute(stmt)
-        icon_banner_id = result.scalar_one_or_none()
-
-        if not icon_banner_id:
-            raise ValueError("No icon/banner found with the given name for the guild")
-
-        await self.__set_default_icon_banner(guild_id, icon_banner_id)
-
     async def in_checked_channel(
         self, eid: int, channel_id: int, category_id: int, guild_id: int
-    ):
+    ) -> bool:
         rules, exceptions = await self.list_rules(eid)
 
-        if channel_id in rules[Container.CHANNEL]:
+        if channel_id in rules[IjoSiko.CHANNEL]:
             return True
-        if channel_id in exceptions[Container.CHANNEL]:
+        if channel_id in exceptions[IjoSiko.CHANNEL]:
             return False
 
-        if category_id in rules[Container.CATEGORY]:
+        if category_id in rules[IjoSiko.CATEGORY]:
             return True
-        if category_id in exceptions[Container.CATEGORY]:
+        if category_id in exceptions[IjoSiko.CATEGORY]:
             return False
 
-        if guild_id in rules[Container.GUILD]:
+        if guild_id in rules[IjoSiko.GUILD]:
             return True
         # guilds cannot have exceptions
         # if guild_id in exceptions[Container.GUILD]:
@@ -512,7 +412,7 @@ class TenpoDB:
 
         return False
 
-    async def startswith_ignorable(self, eid: int, message: str):
+    async def startswith_ignorable(self, eid: int, message: str) -> bool:
         opens = await self.get_opens(eid)
         for ignorable in opens:
             if message.startswith(ignorable):

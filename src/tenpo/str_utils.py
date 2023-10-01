@@ -4,17 +4,19 @@ import re
 from typing import List
 
 # LOCAL
-from tenpo.db import DEFAULT_REACTS, Container
+from tenpo.db import DEFAULT_REACTS, IjoSiko, Pali
 from tenpo.log_utils import getLogger
 from tenpo.toki_pona_utils import EMOTES_RE
 
 LOG = getLogger()
 
 CONTAINER_MAP = {
-    Container.CHANNEL: "tomo",
-    Container.CATEGORY: "kulupu",
-    Container.GUILD: "ma",
+    IjoSiko.CHANNEL: "tomo",
+    IjoSiko.CATEGORY: "kulupu",
+    IjoSiko.GUILD: "ma",
 }
+
+PALI_MAP = {Pali.PANA: "pana", Pali.ANTE: "ante", Pali.WEKA: "weka"}
 
 
 def get_discord_reacts(s: str):
@@ -78,13 +80,13 @@ def format_guild(id: int):
 
 def format_rules(rules, prefix):
     rules_str = prefix + ": \n"
-    for val in Container:
+    for val in IjoSiko:
         if not rules[val]:
             continue
 
         rules_str += "  " + CONTAINER_MAP[val] + "\n"
         formatter = format_channel
-        if val == Container.GUILD:
+        if val == IjoSiko.GUILD:
             formatter = format_guild
 
         for rule in rules[val]:
