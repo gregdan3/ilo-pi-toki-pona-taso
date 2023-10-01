@@ -201,7 +201,10 @@ class TenpoDB:
         self, eid: int, key: ConfigKey, default: Any = None
     ) -> Optional[JSONType]:
         config = await self.__get_config(eid)
-        return config.get(key.value, default) if config else default
+        item = config.get(key.value, default) if config else default
+        if item is not None and item:
+            return item
+        return default
 
     async def __set_config_item(
         self,
