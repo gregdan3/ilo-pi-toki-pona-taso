@@ -195,9 +195,10 @@ class CogRules(Cog):
         await cmd_toggle_rule(ctx, actor, ctx.guild, Container.GUILD, ephemeral=True)
 
     @user_rules.command(
-        name="open", description="open pi toki sina li ni la mi lukin ala"
+        name="open",
+        description="open pi toki sina li ni la mi lukin ala. pana sin la mi lukin.",
     )
-    @option(name="toki", description="toki open")
+    @option(name="toki", description="mi o lukin ala e seme? pana sin la mi lukin.")
     async def user_toggle_opens(self, ctx: ApplicationContext, toki: str):
         user = ctx.user
         assert user
