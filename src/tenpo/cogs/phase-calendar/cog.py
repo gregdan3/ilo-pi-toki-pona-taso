@@ -48,6 +48,9 @@ class CogPhaseCalendar(Cog):
                         MessageableGuildChannel,
                         await self.bot.fetch_channel(channel_id),
                     )
+                except discord.errors.Forbidden:
+                    LOG.warning("Channel %s no longer accessible.", channel)
+                    continue
                 except discord.errors.NotFound:
                     # NOTE: o weka ala tan ilo awen tan ni:
                     # ilo Siko li ken pakala li ken pana ala e tomo.
