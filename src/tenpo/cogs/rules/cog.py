@@ -1,5 +1,6 @@
 # STL
 import re
+from typing import Literal, cast
 
 # PDM
 import emoji
@@ -8,13 +9,13 @@ from discord.ext import commands
 from discord.commands.context import ApplicationContext
 
 # LOCAL
-from tenpo.db import Action, Container
+from tenpo.db import Pali, IjoSiko
 from tenpo.types import DiscordActor, DiscordContainer, MessageableGuildChannel
 from tenpo.__main__ import DB
 from tenpo.log_utils import getLogger
-from tenpo.chat_utils import (
-    ACTION_MAP,
+from tenpo.str_utils import (
     CONTAINER_MAP,
+    PALI_MAP,
     format_reacts,
     format_channel,
     format_role_info,
@@ -25,6 +26,8 @@ from tenpo.chat_utils import (
 )
 
 LOG = getLogger()
+
+LukinOptions = Literal["lukin", "ala"]
 
 
 # TODO: generate these functions
@@ -47,7 +50,7 @@ class CogRules(Cog):
         assert actor
         await cmd_list_rules(ctx, actor, ephemeral=False)
 
-    @guild_rules.command(name="poki", description="toki pona taso o tawa jan poki")
+    @guild_rules.command(name="poki", description="toki pona taso o tawa jan poki taso")
     @option(name="poki", description="mi lukin e poki ni taso")
     @commands.has_permissions(administrator=True)
     async def guild_toggle_role(self, ctx: ApplicationContext, poki: Role):
@@ -77,52 +80,35 @@ class CogRules(Cog):
             "mi kama ante ala e nimi pi tomo __%s__ la sina ken ante e ona" % tomo.name
         )
 
-    @guild_rules.command(name="lukin", description="mi o lukin ala lukin?")
+    @guild_rules.command(name="lukin", description="mi o lukin ala lukin e ma?")
     @commands.has_permissions(administrator=True)
-    async def guild_toggle_disabled(self, ctx: ApplicationContext):
+    @option(name="lukin", choices=["lukin", "ala"])
+    async def guild_set_disabled(self, ctx: ApplicationContext, lukin: str):
         actor = ctx.guild
         assert actor
-        return await cmd_toggle_disabled(ctx, actor, ephemeral=False)
+        lukin = cast(LukinOptions, lukin)
+        return await cmd_set_disabled(ctx, actor, lukin, ephemeral=False)
 
-    @guild_rules.command(name="tomo", description="o ante e lawa tomo")
-    @option(name="tomo", description="lon tomo seme")
-    @option(name="ala", description="tomo li ken toki ante lon ale")
+    @guild_rules.command(name="tomo", description="o ante e lawa lon tomo lon kulupu")
+    @option(name="tomo", description="lon tomo seme, lon kulupu seme")
+    @option(name="ala", description="tomo li ken toki pona ala")
     @commands.has_permissions(administrator=True)
     async def guild_toggle_channel(
         self,
         ctx: ApplicationContext,
-        tomo: MessageableGuildChannel,
+        tomo: MessageableGuildChannel | CategoryChannel,
         ala: bool = False,
     ):
         actor = ctx.guild
         assert actor
-        await cmd_toggle_rule(ctx, actor, tomo, Container.CHANNEL, ala, ephemeral=False)
-
-    @guild_rules.command(name="kulupu", description="o ante e lawa kulupu")
-    @option(name="kulupu", description="lon kulupu seme")
-    @option(name="ala", description="kulupu li ken toki ante lon ale")
-    @commands.has_permissions(administrator=True)
-    async def guild_toggle_category(
-        self,
-        ctx: ApplicationContext,
-        kulupu: CategoryChannel,
-        ala: bool = False,
-    ):
-        actor = ctx.guild
-        assert actor
-        await cmd_toggle_rule(
-            ctx, actor, kulupu, Container.CATEGORY, ala, ephemeral=False
-        )
+        await cmd_upsert_rule(ctx, actor, tomo, ala, ephemeral=False)
 
     @guild_rules.command(name="ma", description="o ante e lawa ma")
     @commands.has_permissions(administrator=True)
-    async def guild_toggle_guild(  # TODO: sucks bad
-        self,
-        ctx: ApplicationContext,
-    ):
-        actor = ctx.guild
-        assert actor  # special case: server has a server rule
-        await cmd_toggle_rule(ctx, actor, actor, Container.GUILD, ephemeral=False)
+    async def guild_toggle_guild(self, ctx: ApplicationContext):
+        ma = ctx.guild
+        assert ma  # nasa la ma li ken lawa e ma
+        await cmd_upsert_rule(ctx, ma, ma, ephemeral=False)
 
     """
     User rules. They're nearly identical to guild ones.
@@ -142,10 +128,12 @@ class CogRules(Cog):
         await cmd_list_rules(ctx, actor, ephemeral=True)
 
     @user_rules.command(name="lukin", description="mi o lukin ala lukin?")
-    async def user_toggle_disabled(self, ctx: ApplicationContext):
+    @option(name="lukin", choices=["lukin", "ala"])
+    async def user_set_disabled(self, ctx: ApplicationContext, lukin: str):
         actor = ctx.user
         assert actor
-        return await cmd_toggle_disabled(ctx, actor, ephemeral=True)
+        lukin = cast(LukinOptions, lukin)  # pycord sucks
+        return await cmd_set_disabled(ctx, actor, lukin, ephemeral=True)
 
     @user_rules.command(name="nasin", description="sina toki pona ala la mi o seme?")
     @option(name="nasin", choices=["sitelen", "weka"])
@@ -157,42 +145,30 @@ class CogRules(Cog):
             f"sina toki pona ala la mi __{nasin}__ e toki", ephemeral=True
         )
 
-    @user_rules.command(name="tomo", description="o ante e lawa tomo")
-    @option(name="tomo", description="lon tomo seme")
-    @option(name="ala", description="tomo li ken toki pona ala lon ale")
+    @user_rules.command(name="tomo", description="o ante e lawa lon tomo lon kulupu")
+    @option(name="tomo", description="lon tomo seme, lon kulupu seme")
+    @option(name="ala", description="tomo li ken toki pona ala")
     async def user_toggle_channel(
         self,
         ctx: ApplicationContext,
-        tomo: MessageableGuildChannel,
+        tomo: MessageableGuildChannel | CategoryChannel,
         ala: bool = False,
     ):
-        actor = ctx.user
-        assert actor
-        await cmd_toggle_rule(ctx, actor, tomo, Container.CHANNEL, ala, ephemeral=True)
+        jan = ctx.user
+        assert jan
 
-    @user_rules.command(name="kulupu", description="o ante e lawa kulupu")
-    @option(name="kulupu", description="lon kulupu seme")
-    @option(name="ala", description="kulupu li ken toki ante lon ale")
-    async def user_toggle_category(
-        self,
-        ctx: ApplicationContext,
-        kulupu: CategoryChannel,
-        ala: bool = False,
-    ):
-        actor = ctx.user
-        assert actor
-        await cmd_toggle_rule(
-            ctx, actor, kulupu, Container.CATEGORY, ala, ephemeral=True
-        )
+        await cmd_upsert_rule(ctx, jan, tomo, ala, ephemeral=True)
 
     @user_rules.command(name="ma", description="o ante e lawa ma")
     async def user_toggle_guild(
         self,
         ctx: ApplicationContext,
     ):
-        actor = ctx.user
-        assert actor
-        await cmd_toggle_rule(ctx, actor, ctx.guild, Container.GUILD, ephemeral=True)
+        jan = ctx.user
+        assert jan
+        ma = ctx.guild
+        assert ma
+        await cmd_upsert_rule(ctx, jan, ma, ephemeral=True)
 
     @user_rules.command(
         name="open",
@@ -271,49 +247,69 @@ class CogRules(Cog):
         await ctx.respond(resp, ephemeral=True)
 
 
-async def cmd_toggle_rule(
+async def cmd_upsert_rule(
     ctx: ApplicationContext,
-    actor: DiscordActor,
-    container: DiscordContainer,
-    ctype: Container,
-    exception: bool = False,
+    jan_anu_ma: DiscordActor,
+    poki: DiscordContainer,
+    ala: bool = False,
     ephemeral: bool = False,
 ):
-    guild = ctx.guild
-    assert guild
-    user = ctx.user
-    assert user
+    ctype = IjoSiko.CHANNEL
+    if isinstance(poki, Guild):
+        ctype = IjoSiko.GUILD
+    elif isinstance(poki, CategoryChannel):
+        ctype = IjoSiko.CATEGORY
+    elif isinstance(poki, MessageableGuildChannel):
+        ctype = IjoSiko.CHANNEL  # TODO: repetitive
 
-    action = await DB.toggle_rule(container.id, ctype, actor.id, exception)
-    response = await build_rule_resp(container, ctype, action, exception)
+    action = await DB.upsert_rule(poki.id, ctype, jan_anu_ma.id, ala)
+    response = await build_rule_resp(poki, ctype, action, ala)
     await ctx.respond(response, ephemeral=ephemeral)
 
 
-async def cmd_toggle_disabled(
-    ctx: ApplicationContext, actor: DiscordActor, ephemeral: bool
+async def cmd_set_disabled(
+    ctx: ApplicationContext,
+    actor: DiscordActor,
+    _disabled: LukinOptions,
+    ephemeral: bool,
 ):
-    result = await DB.toggle_disabled(actor.id)
-    resp = "mi kama lukin ala" if result else "mi kama lukin"
+    disabled = False
+    if _disabled == "ala":
+        disabled = True
+
+    prev_disabled = await DB.get_disabled(actor.id)
+
+    pverb = "kama"
+    if prev_disabled == disabled:
+        pverb = "awen"
+
+    verb = "lukin"
+    if disabled:
+        verb = "lukin ala"
+    resp = f"mi {pverb} {verb}"
+
+    assert isinstance(disabled, bool)
+    await DB.set_disabled(actor.id, disabled)
     await ctx.respond(resp, ephemeral=ephemeral)
 
 
 async def build_rule_resp(
     container: DiscordContainer,
-    ctype: Container,
-    action: Action,
+    ctype: IjoSiko,
+    action: Pali,
     exception: bool,
 ):
     container_ = CONTAINER_MAP[ctype]
-    verb = ACTION_MAP[action]
+    verb = PALI_MAP[action]
     formatted = (
         format_channel(container.id)
-        if ctype != Container.GUILD
+        if ctype != IjoSiko.GUILD
         else f"__{container.name}__"  # TODO: formatting guilds in different ways
         # NOTE: I could just say "ni" instead of getting all fancy
     )
 
     result = ""
-    if action in (Action.INSERT, Action.UPDATE):
+    if action in (Pali.PANA, Pali.ANTE):
         if exception:
             result += "ona li ken toki ale."
         else:
@@ -389,7 +385,7 @@ async def cmd_lawa_help(ctx: ApplicationContext, actor: DiscordActor, ephemeral:
     sona = "mi __ilo pi toki pona taso__. sina toki pona ala la mi pona e ni. o lukin e ken mi:\n"
     sona += f"- `{prefix} sona`: mi pana e toki ni.\n"
     sona += f"- `{prefix} ale`: mi pana e lawa ale sina.\n"
-    sona += f"- `{prefix} lukin`: mi lukin ala. sina ni sin la mi lukin.\n"
+    sona += f"- `{prefix} lukin [lukin]`: mi lukin ala lukin e toki sina.\n"
 
     sona += f"- `{prefix} [tomo|kulupu|ma] (ala)`: mi lukin e ijo. sina pana sin e ijo la mi lukin ala.\n"
     sona += f"  - sina toki pona ala lon ijo la mi pona e ni.\n"

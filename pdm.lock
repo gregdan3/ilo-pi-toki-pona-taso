@@ -6,7 +6,7 @@ groups = ["default", "dev"]
 cross_platform = true
 static_urls = false
 lock_version = "4.3"
-content_hash = "sha256:b9b2cb00a97079a28415e666f049239cf01ed157946cb5815f0b69cbbaa6694a"
+content_hash = "sha256:f828ddeacd5946724de38f1d0f16ce4ccb51776ce2bf3ed865a7f78e05f85edc"
 
 [[package]]
 name = "aiodns"
@@ -352,6 +352,19 @@ summary = "Cross-platform colored terminal text."
 files = [
     {file = "colorama-0.4.6-py2.py3-none-any.whl", hash = "sha256:4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6"},
     {file = "colorama-0.4.6.tar.gz", hash = "sha256:08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44"},
+]
+
+[[package]]
+name = "croniter"
+version = "1.4.1"
+requires_python = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
+summary = "croniter provides iteration for datetime object with cron like format"
+dependencies = [
+    "python-dateutil",
+]
+files = [
+    {file = "croniter-1.4.1-py2.py3-none-any.whl", hash = "sha256:9595da48af37ea06ec3a9f899738f1b2c1c13da3c38cea606ef7cd03ea421128"},
+    {file = "croniter-1.4.1.tar.gz", hash = "sha256:1a6df60eacec3b7a0aa52a8f2ef251ae3dd2a7c7c8b9874e73e791636d55a361"},
 ]
 
 [[package]]
@@ -873,6 +886,19 @@ files = [
 ]
 
 [[package]]
+name = "python-dateutil"
+version = "2.8.2"
+requires_python = "!=3.0.*,!=3.1.*,!=3.2.*,>=2.7"
+summary = "Extensions to the standard Python datetime module"
+dependencies = [
+    "six>=1.5",
+]
+files = [
+    {file = "python-dateutil-2.8.2.tar.gz", hash = "sha256:0123cacc1627ae19ddf3c27a5de5bd67ee4586fbdd6440d9748f8abb483d3e86"},
+    {file = "python_dateutil-2.8.2-py2.py3-none-any.whl", hash = "sha256:961d03dc3453ebbc59dbdea9e4e11c5651520a876d0f4db161e8674aae935da9"},
+]
+
+[[package]]
 name = "python-dotenv"
 version = "1.0.0"
 requires_python = ">=3.8"
@@ -923,6 +949,16 @@ files = [
     {file = "sgp4-2.22-cp311-cp311-win32.whl", hash = "sha256:02ffff57475641a7133d48dbed561b1d81ccc3015fcd4dd2aeea3c9e43891a3a"},
     {file = "sgp4-2.22-cp311-cp311-win_amd64.whl", hash = "sha256:bdd33ec26172600b8669d0fbdab7d3a7fabe0cc8765397ab00082150fbfd4ce2"},
     {file = "sgp4-2.22.tar.gz", hash = "sha256:17f0a2eaad2dca065b6de25c1ceaa940ff7cfa8cc67120cb4111a00f177b86f9"},
+]
+
+[[package]]
+name = "six"
+version = "1.16.0"
+requires_python = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*"
+summary = "Python 2 and 3 compatibility utilities"
+files = [
+    {file = "six-1.16.0-py2.py3-none-any.whl", hash = "sha256:8abb2f1d86890a2dfb989f9a77cfcfd3e47c2a354b01111771326f8aa26e0254"},
+    {file = "six-1.16.0.tar.gz", hash = "sha256:1e61c37477a1626458e36f7b1d82aa5c9b094fa4802892072e49de9c60c4c926"},
 ]
 
 [[package]]

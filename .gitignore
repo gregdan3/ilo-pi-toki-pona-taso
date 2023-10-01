@@ -9,3 +9,4 @@ userdata/*
 *.lprof
 
 tests/corpus
+out/
