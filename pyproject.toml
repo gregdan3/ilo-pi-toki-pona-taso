@@ -15,7 +15,6 @@ dependencies = [
     "sqlalchemy[asyncio]",
     "sqlalchemy-utils",
     "aiosqlite",
-    "asyncinit",
     "sqlalchemy-json",
     "unidecode",
     "emoji",

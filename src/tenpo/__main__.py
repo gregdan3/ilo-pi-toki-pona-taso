@@ -9,7 +9,7 @@ from discord import Intents
 from discord.ext import commands
 
 # LOCAL
-from tenpo.db import TenpoDB
+from tenpo.db import TenpoDB, TenpoDBFactory
 from tenpo.log_utils import getLogger, configure_logger
 
 LOG = getLogger()
@@ -47,7 +47,7 @@ BOT = commands.Bot(
     intents=INTENTS,
     debug_guilds=DEBUG_GUILDS,
 )
-DB = BOT.loop.run_until_complete(TenpoDB(database_file=DB_FILE))
+DB: TenpoDB = BOT.loop.run_until_complete(TenpoDBFactory(database_file=DB_FILE))
 # use bot's loop instead of our own so tasks work as intended
 
 

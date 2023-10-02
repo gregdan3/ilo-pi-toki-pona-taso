@@ -6,7 +6,7 @@ groups = ["default", "dev"]
 cross_platform = true
 static_urls = false
 lock_version = "4.3"
-content_hash = "sha256:2c5f3acfafc39efd6dc63caafac2c90b4ff817669036f5da12e599058a9657c2"
+content_hash = "sha256:f013a5682056c96c827f3d02999e38abdcb33dd2dcfc4e3cd6e248fe03c9a86c"
 
 [[package]]
 name = "aiodns"
@@ -159,16 +159,6 @@ summary = "Timeout context manager for asyncio programs"
 files = [
     {file = "async-timeout-4.0.2.tar.gz", hash = "sha256:2163e1640ddb52b7a8c80d0a67a08587e5d245cc9c553a74a847056bc2976b15"},
     {file = "async_timeout-4.0.2-py3-none-any.whl", hash = "sha256:8ca1e4fcf50d07413d66d1a5e416e42cfdf5851c981d679a09851a6853383b3c"},
-]
-
-[[package]]
-name = "asyncinit"
-version = "0.2.4"
-requires_python = ">=3.5"
-summary = "Class decorator to enable async __init__"
-files = [
-    {file = "asyncinit-0.2.4-py3-none-any.whl", hash = "sha256:9f11291943488abd15a1463dad98452e3bd6b39e8e6d45bc7cc008a09825b11e"},
-    {file = "asyncinit-0.2.4.tar.gz", hash = "sha256:4acaf614f4d6f78babd278bbacf21bd9f7756efc17cd5d7e1bae31ff770b3cfa"},
 ]
 
 [[package]]

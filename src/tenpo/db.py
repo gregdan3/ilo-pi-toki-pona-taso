@@ -156,7 +156,6 @@ class Rules(Base):
     )
 
 
-@asyncinit
 class TenpoDB:
     engine: AsyncEngine
     sgen: async_sessionmaker
@@ -168,9 +167,11 @@ class TenpoDB:
     Must be protected (`__methodname`).
     """
 
-    async def __init__(self, database_file: str):
+    def __init__(self, database_file: str):
         self.engine = create_async_engine(f"sqlite+aiosqlite:///{database_file}")
         self.sgen = async_sessionmaker(bind=self.engine, expire_on_commit=False)
+
+    async def __ainit__(self):
         async with self.engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
 
@@ -421,3 +422,9 @@ class TenpoDB:
             if message.startswith(ignorable):
                 return True
         return False
+
+
+async def TenpoDBFactory(database_file: str) -> TenpoDB:
+    t = TenpoDB(database_file=database_file)
+    await t.__ainit__()
+    return t
