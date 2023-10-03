@@ -15,13 +15,15 @@ async def send_dm_to_user(user: User | Member, message: str):
     await dm.send(message)
 
 
-async def send_delete_dm(message: Message):
-    await send_dm_to_user(
-        message.author,
-        f"""sina toki pona ala la mi weka e toki sina ni:
-{codeblock_wrap(message.content)}
-sina wile ala e weka la o kepeken `/lawa nasin`""",
-    )
+async def send_delete_dm(message: Message, tan_ma: bool = False):
+    resp = f"""toki sina li pona ala la mi weka e ona ni:
+{codeblock_wrap(message.content)}\n"""
+    if not tan_ma:
+        resp += """sina wile ala e weka la o kepeken `/lawa nasin`"""
+    else:
+        resp += """ni li tan ma la sina ken ala weka"""
+
+    await send_dm_to_user(message.author, resp)
 
 
 # TODO: link message

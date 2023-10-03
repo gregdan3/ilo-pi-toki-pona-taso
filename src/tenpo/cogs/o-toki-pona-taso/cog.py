@@ -38,14 +38,16 @@ class CogOTokiPonaTaso(Cog):
             LOG.debug("Ignoring message; preconditions failed")
             return
 
-        if not (await should_react_user(message) or await should_react_guild(message)):
+        tan_jan = await should_react_user(message)
+        tan_ma = await should_react_guild(message)
+        if not (tan_jan or tan_ma):
             return
 
         if is_toki_pona(message.content):
             LOG.debug("Ignoring message; is toki pona")
             return
 
-        await respond(message)
+        await respond(message, tan_ma=tan_ma)
 
     @commands.Cog.listener("on_message_edit")
     async def toki_li_ante_la(self, before: Message, after: Message):
@@ -53,7 +55,10 @@ class CogOTokiPonaTaso(Cog):
         if not await should_check(message):
             LOG.debug("Ignoring edit; preconditions failed")
             return
-        if not (await should_react_user(message) or await should_react_guild(message)):
+
+        tan_jan = await should_react_user(message)
+        tan_ma = await should_react_guild(message)
+        if not (tan_jan or tan_ma):
             return
 
         # check if message already had a react
@@ -67,7 +72,7 @@ class CogOTokiPonaTaso(Cog):
             LOG.debug("Ignoring edit; did not change validity")
             return
         if before_ok and not after_ok:
-            await respond(message)
+            await respond(message, tan_ma=tan_ma)
             return
         if not before_ok and after_ok:
             assert self.bot.user  # asserts we are actually logged in...
@@ -158,7 +163,7 @@ async def get_react(eid: int):
     return random.choice(reacts)
 
 
-async def react_to_msg(message: Message):
+async def react_to_msg(message: Message, tan_ma: bool = False):
     uid = message.author.id
     react = await get_react(uid)
     LOG.debug("Reacting %s to user message" % react)
@@ -177,15 +182,15 @@ async def react_to_msg(message: Message):
     await send_react_error_dm(message, react)
 
 
-async def delete_msg(message: Message):
+async def delete_msg(message: Message, tan_ma: bool = False):
     LOG.debug("Deleting user message")
     await message.delete(reason="o toki pona taso")
-    await send_delete_dm(message)
+    await send_delete_dm(message, tan_ma=tan_ma)
 
 
-async def respond(message: Message):
+async def respond(message: Message, tan_ma: bool = False):
     response_type = await DB.get_response(message.author.id)
-    await RESPONSE_MAP[response_type](message)
+    await RESPONSE_MAP[response_type](message, tan_ma=tan_ma)
 
 
 async def get_own_react(message: Message) -> Optional[Reaction]:
