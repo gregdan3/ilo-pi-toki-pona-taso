@@ -32,7 +32,7 @@ DB_FILE = load_envvar("DB_FILE")
 LOG_LEVEL = load_envvar("LOG_LEVEL", "WARNING")
 LOG_LEVEL_DISCORD = load_envvar("LOG_LEVEL_DISCORD", "WARNING")
 LOG_LEVEL_INT = getattr(logging, LOG_LEVEL.upper())
-LOG_LEVEL_DISCORD_INT = getattr(logging, LOG_LEVEL.upper())
+LOG_LEVEL_DISCORD_INT = getattr(logging, LOG_LEVEL_DISCORD.upper())
 
 DEBUG_GUILDS = load_envvar("DEBUG_GUILDS", "")
 if DEBUG_GUILDS:
