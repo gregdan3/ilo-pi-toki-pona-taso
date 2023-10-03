@@ -4,11 +4,11 @@
 # STL
 import enum
 from typing import Any, Set, Dict, List, Tuple, Literal, Optional, TypeAlias, cast
-from datetime import datetime
+from datetime import datetime, timedelta
 from contextlib import asynccontextmanager
 
 # PDM
-from asyncinit import asyncinit
+from croniter import croniter
 from sqlalchemy import (
     Enum,
     Column,
@@ -20,8 +20,10 @@ from sqlalchemy import (
     delete,
     select,
 )
+from dateutil.tz import tz
 from sqlalchemy.orm import relationship, declarative_base
 from sqlalchemy_json import NestedMutableJson
+from pytimeparse.timeparse import timeparse
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -32,6 +34,8 @@ from sqlalchemy.dialects.sqlite import Insert as insert
 
 # LOCAL
 from tenpo.log_utils import getLogger
+from tenpo.phase_utils import is_major_phase
+from tenpo.croniter_utils import EventTimer
 
 LOG = getLogger()
 Base = declarative_base()
@@ -81,6 +85,7 @@ DEFAULT_REACTS = [
 ]
 DEFAULT_RESPONSE = "sitelen"
 DEFAULT_TIMER = "ala"
+DEFAULT_TIMEZONE = "UTC"
 
 
 class Pali(enum.Enum):
@@ -109,7 +114,8 @@ class ConfigKey(enum.Enum):
     CALENDAR = "calendar"  # moon calendar channel
     CRON = "cron"  # cron string
     LENGTH = "length"  # timedelta
-    TIMER = "timer"  # timing method (cron, ale, ala)
+    TIMING = "timer"  # timing method (cron, ale, ala)
+    TIMEZONE = "timezone"
 
     # both
     DISABLED = "disabled"
@@ -124,9 +130,17 @@ class ConfigKeyTypes(enum.Enum):
     CALENDAR = int  # channel id
     CRON = str
     LENGTH = str  # TODO
+    TIMEZONE = str
     TIMER = str
 
     DISABLED = bool
+
+
+class NasinTenpo(enum.Enum):
+    ALE = "ale"
+    ALA = "ala"
+    MUN = "mun"
+    WILE = "wile"
 
 
 Lawa = Dict[IjoSiko, Set[int]]
@@ -156,7 +170,6 @@ class Rules(Base):
     )
 
 
-@asyncinit
 class TenpoDB:
     engine: AsyncEngine
     sgen: async_sessionmaker
@@ -168,9 +181,11 @@ class TenpoDB:
     Must be protected (`__methodname`).
     """
 
-    async def __init__(self, database_file: str):
+    def __init__(self, database_file: str):
         self.engine = create_async_engine(f"sqlite+aiosqlite:///{database_file}")
         self.sgen = async_sessionmaker(bind=self.engine, expire_on_commit=False)
+
+    async def __ainit__(self):
         async with self.engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
 
@@ -202,9 +217,7 @@ class TenpoDB:
     ) -> Optional[JSONType]:
         config = await self.__get_config(eid)
         item = config.get(key.value, default) if config else default
-        if item is not None and item:
-            return item
-        return default
+        return item if (item is not None and item) else default
 
     async def __set_config_item(
         self,
@@ -265,23 +278,37 @@ class TenpoDB:
         await self.set_role(eid, to_assign)
         return not is_same  # true = wrote, false = deleted
 
-    async def get_cron(self, eid: int):
-        return await self.__get_config_item(eid, ConfigKey.CRON)
+    async def get_cron(self, eid: int) -> str:
+        return cast(str, await self.__get_config_item(eid, ConfigKey.CRON))
 
     async def set_cron(self, eid: int, cron: str):
         return await self.__set_config_item(eid, ConfigKey.CRON, cron)
 
-    async def get_length(self, eid: int):
-        return await self.__get_config_item(eid, ConfigKey.LENGTH)
+    async def get_timezone(self, eid: int) -> str:
+        return cast(
+            str, await self.__get_config_item(eid, ConfigKey.TIMEZONE, DEFAULT_TIMEZONE)
+        )
+
+    async def set_timezone(self, eid: int, timezone: str):
+        return await self.__set_config_item(eid, ConfigKey.TIMEZONE, timezone)
+
+    async def get_length(self, eid: int) -> str:
+        return cast(str, await self.__get_config_item(eid, ConfigKey.LENGTH))
 
     async def set_length(self, eid: int, length: str):
         return await self.__set_config_item(eid, ConfigKey.LENGTH, length)
 
-    async def get_timer(self, eid: int) -> str:  # DEFAULT: never
-        return await self.__get_config_item(eid, ConfigKey.TIMER, DEFAULT_TIMER)
+    async def get_timing(self, eid: int) -> str:  # DEFAULT: never
+        return await self.__get_config_item(eid, ConfigKey.TIMING, DEFAULT_TIMER)
 
-    async def set_timer(self, eid: int, timer: str):
-        return await self.__set_config_item(eid, ConfigKey.TIMER, timer)
+    async def set_timing(self, eid: int, timer: str):
+        return await self.__set_config_item(eid, ConfigKey.TIMING, timer)
+
+    async def get_event_timer(self, eid: int) -> EventTimer:
+        c = await self.get_cron(eid)
+        t = await self.get_timezone(eid)
+        d = await self.get_length(eid)
+        return EventTimer(c, t, d)
 
     async def get_response(self, eid: int) -> str:  # DEFAULT: react
         return await self.__get_config_item(eid, ConfigKey.RESPONSE, DEFAULT_RESPONSE)
@@ -393,7 +420,7 @@ class TenpoDB:
             return rules, exceptions
 
     async def in_checked_channel(
-        self, eid: int, channel_id: int, category_id: int, guild_id: int
+        self, eid: int, channel_id: int, category_id: Optional[int], guild_id: int
     ) -> bool:
         rules, exceptions = await self.list_rules(eid)
 
@@ -415,9 +442,28 @@ class TenpoDB:
 
         return False
 
+    async def is_event_time(self, eid: int) -> bool:
+        timing_method = await self.get_timing(eid)
+        if timing_method == "ale":
+            return True
+        elif timing_method == "ala":
+            return False
+        elif timing_method == "mun":
+            return is_major_phase()
+        elif timing_method == "wile":
+            timer = await self.get_event_timer(eid)
+            return timer.now_in_range()
+        return False
+
     async def startswith_ignorable(self, eid: int, message: str) -> bool:
         opens = await self.get_opens(eid)
         for ignorable in opens:
             if message.startswith(ignorable):
                 return True
         return False
+
+
+async def TenpoDBFactory(database_file: str) -> TenpoDB:
+    t = TenpoDB(database_file=database_file)
+    await t.__ainit__()
+    return t

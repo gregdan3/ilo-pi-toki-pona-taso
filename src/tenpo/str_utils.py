@@ -1,7 +1,8 @@
 # TODO: entire module is a bit mixed between "user facing" format and "internal" format. fix it.
 # STL
 import re
-from typing import List
+from typing import List, Tuple
+from datetime import datetime
 
 # LOCAL
 from tenpo.db import DEFAULT_REACTS, Pali, IjoSiko, IjoPiLawaKen
@@ -17,6 +18,39 @@ CONTAINER_MAP = {
 }
 
 PALI_MAP = {Pali.PANA: "pana", Pali.ANTE: "ante", Pali.WEKA: "weka"}
+TIME_FMT = "<t:%s:%s>"
+
+
+TIMING_MAP = {
+    "ale": "mi lukin lon tenpo ale",
+    "ala": "mi lukin ala",
+    "mun": "mi lukin lon ni: mun suli li pimeja ale li suno ale",
+    "wile": "mi lukin lon tenpo wile tan ilo `lawa_ma tenpo`",
+}
+
+
+def dt_to_int(t: datetime):
+    return int(t.timestamp())
+
+
+def dt_to_discord_dt(t: datetime, fmt: str = "F") -> str:
+    return TIME_FMT % (dt_to_int(t), fmt)
+
+
+def format_date_ranges(ranges: List[Tuple[datetime, datetime]]) -> str:
+    resp = ""
+    for start, end in ranges:
+        resp += dt_to_discord_dt(start) + " " + dt_to_discord_dt(end) + "\n"
+    return resp
+
+
+def format_cron_data(cron: str, timezone: str, length: str):
+    resp = f"nasin tenpo `{timezone}` la mi open lon tenpo `{cron}` li awen lon tenpo `{length}`"
+    return resp
+
+
+def format_timing_data(timing: str):
+    return f"{timing} la {TIMING_MAP[timing]}."
 
 
 def get_discord_reacts(s: str):
@@ -97,11 +131,11 @@ def format_rules(rules, prefix):
 
 def format_rules_exceptions(rules: dict, exceptions: dict):
     resp = ""
-    if rules:
+    if any([rule for rule in rules.values()]):
         frules = format_rules(rules, "ni o toki pona taso")
         resp += frules
         resp += "\n"
-    if exceptions:
+    if any([exc for exc in exceptions.values()]):
         fexcepts = format_rules(exceptions, "ni li ken toki ale")
         resp += fexcepts
     return resp

@@ -6,7 +6,7 @@ groups = ["default", "dev"]
 cross_platform = true
 static_urls = false
 lock_version = "4.3"
-content_hash = "sha256:f828ddeacd5946724de38f1d0f16ce4ccb51776ce2bf3ed865a7f78e05f85edc"
+content_hash = "sha256:f013a5682056c96c827f3d02999e38abdcb33dd2dcfc4e3cd6e248fe03c9a86c"
 
 [[package]]
 name = "aiodns"
@@ -159,16 +159,6 @@ summary = "Timeout context manager for asyncio programs"
 files = [
     {file = "async-timeout-4.0.2.tar.gz", hash = "sha256:2163e1640ddb52b7a8c80d0a67a08587e5d245cc9c553a74a847056bc2976b15"},
     {file = "async_timeout-4.0.2-py3-none-any.whl", hash = "sha256:8ca1e4fcf50d07413d66d1a5e416e42cfdf5851c981d679a09851a6853383b3c"},
-]
-
-[[package]]
-name = "asyncinit"
-version = "0.2.4"
-requires_python = ">=3.5"
-summary = "Class decorator to enable async __init__"
-files = [
-    {file = "asyncinit-0.2.4-py3-none-any.whl", hash = "sha256:9f11291943488abd15a1463dad98452e3bd6b39e8e6d45bc7cc008a09825b11e"},
-    {file = "asyncinit-0.2.4.tar.gz", hash = "sha256:4acaf614f4d6f78babd278bbacf21bd9f7756efc17cd5d7e1bae31ff770b3cfa"},
 ]
 
 [[package]]
@@ -906,6 +896,15 @@ summary = "Read key-value pairs from a .env file and set them as environment var
 files = [
     {file = "python-dotenv-1.0.0.tar.gz", hash = "sha256:a8df96034aae6d2d50a4ebe8216326c61c3eb64836776504fcca410e5937a3ba"},
     {file = "python_dotenv-1.0.0-py3-none-any.whl", hash = "sha256:f5971a9226b701070a4bf2c38c89e5a3f0d64de8debda981d1db98583009122a"},
+]
+
+[[package]]
+name = "pytimeparse"
+version = "1.1.8"
+summary = "Time expression parser"
+files = [
+    {file = "pytimeparse-1.1.8-py2.py3-none-any.whl", hash = "sha256:04b7be6cc8bd9f5647a6325444926c3ac34ee6bc7e69da4367ba282f076036bd"},
+    {file = "pytimeparse-1.1.8.tar.gz", hash = "sha256:e86136477be924d7e670646a98561957e8ca7308d44841e21f5ddea757556a0a"},
 ]
 
 [[package]]
