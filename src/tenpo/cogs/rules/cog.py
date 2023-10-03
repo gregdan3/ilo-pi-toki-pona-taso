@@ -46,14 +46,13 @@ class CogRules(Cog):
     async def guild_help(self, ctx: ApplicationContext):
         actor = ctx.guild
         assert actor
-        await cmd_lawa_help(ctx, actor, ephemeral=False)
+        await cmd_lawa_help(ctx, actor, ephemeral=True)
 
-    @guild_rules.command(name="ale", description="o lukin e lawa ma")
-    @commands.has_permissions(administrator=True)
+    @guild_rules.command(name="ale", description="ma ni la lawa li seme?")
     async def guild_list_rules(self, ctx: ApplicationContext):
         actor = ctx.guild
         assert actor
-        await cmd_list_rules(ctx, actor, ephemeral=False)
+        await cmd_list_rules(ctx, actor, ephemeral=True)
 
     @guild_rules.command(name="poki", description="toki pona taso o tawa jan poki taso")
     @option(name="poki", description="mi lukin e poki ni taso")
