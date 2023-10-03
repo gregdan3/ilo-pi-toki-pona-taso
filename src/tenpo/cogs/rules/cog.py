@@ -543,5 +543,5 @@ async def cmd_lawa_help(ctx: ApplicationContext, actor: DiscordActor, ephemeral:
         sona += f"  - {format_timing_data('mun')}\n"
 
     sona += f"\n"
-    sona += f"ilo li tan jan Kekan San <@{NANPA_PI_JAN_PALI}>. wile la <[o kama lon ma ilo]({NASIN_PI_MA_ILO}). mu."
+    sona += f"ilo li tan jan Kekan San <@{NANPA_PI_JAN_PALI}>. o kama lon ma ilo: <{NASIN_PI_MA_ILO}>. mu."
     await ctx.respond(sona, ephemeral=ephemeral)
