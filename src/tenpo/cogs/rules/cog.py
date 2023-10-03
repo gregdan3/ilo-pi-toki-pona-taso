@@ -54,8 +54,11 @@ class CogRules(Cog):
         assert actor
         await cmd_list_rules(ctx, actor, ephemeral=True)
 
-    @guild_rules.command(name="poki", description="toki pona taso o tawa jan poki taso")
-    @option(name="poki", description="mi lukin e poki ni taso")
+    @guild_rules.command(name="poki", description="ma ni la jan poki o toki pona taso")
+    @option(
+        name="poki",
+        description="mi o lukin e jan pi poki ni taso. pana sin la mi lukin e ale.",
+    )
     @commands.has_permissions(administrator=True)
     async def guild_toggle_role(self, ctx: ApplicationContext, poki: Role):
         actor = ctx.guild
@@ -63,12 +66,12 @@ class CogRules(Cog):
 
         result = await DB.toggle_role(actor.id, poki.id)
         if result:
-            await ctx.respond("mi lukin taso e poki __%s__" % poki.name)
+            await ctx.respond("mi lukin taso e jan pi poki __%s__" % poki.name)
             return
         await ctx.respond("mi weka e poki __%s__ la mi lukin e ale" % poki.name)
 
-    @guild_rules.command(name="tomo_tenpo", description="mun tenpo o lon tomo seme")
-    @option(name="tomo", description="tomo seme la nimi o tenpo")
+    @guild_rules.command(name="tomo_tenpo", description="tomo seme o pana e sona tenpo")
+    @option(name="tomo", description="tomo seme o mun tenpo")
     @commands.has_permissions(administrator=True)
     async def guild_toggle_calendar(
         self, ctx: ApplicationContext, tomo: MessageableGuildChannel
@@ -78,13 +81,13 @@ class CogRules(Cog):
 
         result = await DB.toggle_calendar(actor.id, tomo.id)
         if result:
-            await ctx.respond("mi tenpo e tomo __%s__ lon kama" % tomo.name)
+            await ctx.respond("kama la mi tenpo e tomo __<#%s>__" % tomo.id)
             return
-        await ctx.respond(
-            "mi kama ante ala e nimi pi tomo __%s__ la sina ken ante e ona" % tomo.name
-        )
+        await ctx.respond("mi kama lawa ala e tomo __<#%s>__" % tomo.id)
 
-    @guild_rules.command(name="lukin", description="mi o lukin ala lukin e ma?")
+    @guild_rules.command(
+        name="lukin", description="ma ni la mi o lukin ala lukin e toki?"
+    )
     @commands.has_permissions(administrator=True)
     @option(name="lukin", choices=["lukin", "ala"])
     async def guild_set_disabled(self, ctx: ApplicationContext, lukin: str):
@@ -93,9 +96,11 @@ class CogRules(Cog):
         lukin = cast(LukinOptions, lukin)
         return await cmd_set_disabled(ctx, actor, lukin, ephemeral=False)
 
-    @guild_rules.command(name="tomo", description="o ante e lawa lon tomo lon kulupu")
-    @option(name="tomo", description="lon tomo seme, lon kulupu seme")
-    @option(name="ala", description="tomo li ken toki pona ala")
+    @guild_rules.command(
+        name="tomo", description="tomo pi ma ni la ale o toki ala toki pona?"
+    )
+    @option(name="tomo", description="tomo seme, kulupu seme")
+    @option(name="ala", description="tomo la ale li ken toki pona ala")
     @commands.has_permissions(administrator=True)
     async def guild_toggle_channel(
         self,
@@ -107,7 +112,7 @@ class CogRules(Cog):
         assert actor
         await cmd_upsert_rule(ctx, actor, tomo, ala, ephemeral=False)
 
-    @guild_rules.command(name="ma", description="o ante e lawa ma")
+    @guild_rules.command(name="ma", description="ma ni la ale o toki ala toki pona?")
     @commands.has_permissions(administrator=True)
     async def guild_toggle_guild(self, ctx: ApplicationContext):
         ma = ctx.guild
@@ -136,7 +141,7 @@ class CogRules(Cog):
                 await DB.get_event_timer(ma.id)
             except InvalidEventTimer as e:
                 await ctx.respond(
-                    "sina pana ala e nasin tenpo la sina ken ala kepeken nasin wile!"
+                    "sina wile kepeken nasin `wile` o pana e tenpo kepeken ilo `/lawa_ma tenpo`"
                 )
                 return
         await DB.set_timing(ma.id, nasin)
@@ -158,7 +163,7 @@ class CogRules(Cog):
     )
     @option(
         name="tenpo_suno_pi_tenpo_mun",
-        description="tenpo mun la o open lon tenpo suno seme (0-31. ken: */7 2,9,13,30. pana ala la *)",
+        description="tenpo mun la o open lon tenpo suno seme (1-31. ken: */7 2,9,13,30. pana ala la *)",
     )
     @option(
         name="tenpo_suno_pi_tenpo_suno_luka_tu",
@@ -189,13 +194,26 @@ class CogRules(Cog):
     ):
         ma = ctx.guild
         assert ma  # nasa la ma li ken lawa e ma
-        cron = f"{tenpo_lili} {tenpo_suli} {tenpo_suno_pi_tenpo_mun} {tenpo_mun} {tenpo_suno_pi_tenpo_suno_luka_tu}"
+
+        for t in (
+            ale := [
+                tenpo_lili,
+                tenpo_suli,
+                tenpo_suno_pi_tenpo_mun,
+                tenpo_mun,
+                tenpo_suno_pi_tenpo_suno_luka_tu,
+            ]
+        ):
+            if " " in t:  # TODO: o wawa e pona
+                await ctx.respond("ni li ken ala la mi pana ala: `%s`" % t)
+                return
+        cron = " ".join(ale)
 
         try:
             timer = EventTimer(cron, nasin_tenpo, suli_tenpo)
         except InvalidEventTimer as e:
             await ctx.respond(
-                "`%s`\n\no lukin e ale: \n`%s` \n`%s` \n`%s`"
+                "%s\n\no lukin e ale: \n`%s` \n`%s` \n`%s`"
                 % (e, cron, nasin_tenpo, suli_tenpo)
             )
             return
@@ -204,12 +222,11 @@ class CogRules(Cog):
         formatted = format_date_ranges(prospective_dates)
         if prospective_dates[0][1] > prospective_dates[1][0]:  # TODO
             resp = "pakala li ken la mi pana ala! pini tenpo li lon insa pi open tenpo. o lukin: \n"
-
             resp += formatted
             await ctx.respond(resp)
             return
 
-        resp = "tenpo kama li ni: \n"
+        resp = "mi pana la tenpo kama li ni: \n"
         resp += formatted
 
         await DB.set_cron(ma.id, cron)
@@ -225,58 +242,47 @@ class CogRules(Cog):
 
     @user_rules.command(name="sona", description="ilo ni li ken seme? o pana e sona")
     async def user_help(self, ctx: ApplicationContext):
-        actor = ctx.user
-        assert actor
-        await cmd_lawa_help(ctx, actor, ephemeral=True)
+        await cmd_lawa_help(ctx, ctx.user, ephemeral=True)
 
-    @user_rules.command(name="ale", description="o lukin e lawa sina")
+    @user_rules.command(name="ale", description="lawa sina li seme?")
     async def user_list_rules(self, ctx: ApplicationContext):
-        actor = ctx.user
-        assert actor
-        await cmd_list_rules(ctx, actor, ephemeral=True)
+        await cmd_list_rules(ctx, ctx.user, ephemeral=True)
 
-    @user_rules.command(name="lukin", description="mi o lukin ala lukin?")
+    @user_rules.command(name="lukin", description="mi o lukin ala lukin e toki sina?")
     @option(name="lukin", choices=["lukin", "ala"])
     async def user_set_disabled(self, ctx: ApplicationContext, lukin: str):
-        actor = ctx.user
-        assert actor
         lukin = cast(LukinOptions, lukin)  # pycord sucks
-        return await cmd_set_disabled(ctx, actor, lukin, ephemeral=True)
+        return await cmd_set_disabled(ctx, ctx.user, lukin, ephemeral=True)
 
-    @user_rules.command(name="nasin", description="sina toki pona ala la mi o seme?")
+    @user_rules.command(
+        name="nasin", description="sina toki pona ala la mi o seme e toki?"
+    )
     @option(name="nasin", choices=["sitelen", "weka"])
     async def user_set_response(self, ctx: ApplicationContext, nasin: str):
-        actor = ctx.user
-        assert actor
-        await DB.set_response(actor.id, nasin)
+        await DB.set_response(ctx.user.id, nasin)
         await ctx.respond(
             f"sina toki pona ala la mi __{nasin}__ e toki", ephemeral=True
         )
 
-    @user_rules.command(name="tomo", description="o ante e lawa lon tomo lon kulupu")
-    @option(name="tomo", description="lon tomo seme, lon kulupu seme")
-    @option(name="ala", description="tomo li ken toki pona ala")
+    @user_rules.command(name="tomo", description="tomo la sina o toki ala toki pona?")
+    @option(name="tomo", description="tomo seme, kulupu seme")
+    @option(name="ala", description="tomo la sina ken toki pona ala")
     async def user_toggle_channel(
         self,
         ctx: ApplicationContext,
         tomo: MessageableGuildChannel | CategoryChannel,
         ala: bool = False,
     ):
-        jan = ctx.user
-        assert jan
+        await cmd_upsert_rule(ctx, ctx.user, tomo, ala, ephemeral=True)
 
-        await cmd_upsert_rule(ctx, jan, tomo, ala, ephemeral=True)
-
-    @user_rules.command(name="ma", description="o ante e lawa ma")
+    @user_rules.command(name="ma", description="ma ni la sina o toki ala toki pona?")
     async def user_toggle_guild(
         self,
         ctx: ApplicationContext,
     ):
-        jan = ctx.user
-        assert jan
         ma = ctx.guild
         assert ma
-        await cmd_upsert_rule(ctx, jan, ma, ephemeral=True)
+        await cmd_upsert_rule(ctx, ctx.user, ma, ephemeral=True)
 
     @user_rules.command(
         name="open",
@@ -284,17 +290,14 @@ class CogRules(Cog):
     )
     @option(name="toki", description="mi o lukin ala e seme? pana sin la mi lukin.")
     async def user_toggle_opens(self, ctx: ApplicationContext, toki: str):
-        user = ctx.user
-        assert user
-
-        opens = await DB.get_opens(user.id)
+        opens = await DB.get_opens(ctx.user.id)
         if (len(opens) >= 4) and (toki not in opens):
             await ctx.respond(
                 "sina pana pi mute ike. sina wile pana la o weka e toki lon."
             )
             return
 
-        result = await DB.toggle_open(user.id, toki)
+        result = await DB.toggle_open(ctx.user.id, toki)
         if result:
             await ctx.respond(
                 "open pi toki sina li ni la mi lukin ala: __%s__" % toki, ephemeral=True
@@ -305,16 +308,15 @@ class CogRules(Cog):
     @user_rules.command(
         name="sitelen", description="sina toki pona ala la mi pana e sitelen seme"
     )
-    @option(name="sitelen", description="sitelen")
+    @option(
+        name="sitelen",
+        description="sitelen lili musi en sitelen pi ilo Siko",
+    )
     async def user_manage_reacts(self, ctx: ApplicationContext, sitelen: str = ""):
-        # TODO: split in case guild may want to configure later
-        user = ctx.user
-        assert user
-
         if not sitelen:
-            await DB.set_reacts(user.id, [])
+            await DB.set_reacts(ctx.user.id, [])
             await ctx.respond(
-                "sina pana ala e sitelen la mi weka e sitelen sina", ephemeral=True
+                "sina pana ala e sitelen la mi weka e sitelen ale sina", ephemeral=True
             )
             return
 
@@ -343,7 +345,7 @@ class CogRules(Cog):
 
         all_reacts = emojis + reacts
         if all_reacts:
-            await DB.set_reacts(user.id, all_reacts)
+            await DB.set_reacts(ctx.user.id, all_reacts)
 
         resp = ""
         if all_reacts:
@@ -358,7 +360,7 @@ class CogRules(Cog):
                 % formatted_reacts
             )
         if not all_reacts:
-            resp += "\n\nmi kama jo ala e sitelen pona tan sina la mi ante ala e sitelen sina."
+            resp += "\n\nmi jo ala e sitelen pona tan sina la sitelen sina li ante ala."
 
         await ctx.respond(resp, ephemeral=True)
 
@@ -377,6 +379,11 @@ async def cmd_upsert_rule(
         ctype = IjoSiko.CATEGORY
     elif isinstance(poki, MessageableGuildChannel):
         ctype = IjoSiko.CHANNEL  # TODO: repetitive
+    else:
+        LOG.error("Unknown item given to rules: %s", poki)
+        LOG.error("... %s" % poki.__dict__)
+        await ctx.respond("mi ken ala lawa e ijo ni. sina seme?")
+        return
 
     action = await DB.upsert_rule(poki.id, ctype, jan_anu_ma.id, ala)
     response = await build_rule_resp(poki, ctype, action, ala)
@@ -421,7 +428,6 @@ async def build_rule_resp(
         format_channel(container.id)
         if ctype != IjoSiko.GUILD
         else f"__{container.name}__"  # TODO: formatting guilds in different ways
-        # NOTE: I could just say "ni" instead of getting all fancy
     )
 
     result = ""
@@ -436,8 +442,6 @@ async def build_rule_resp(
 
 
 # TODO: for following two funcs, better division of user|guild behavior?
-
-
 async def cmd_list_rules(ctx: ApplicationContext, actor: DiscordActor, ephemeral: bool):
     # TODO: order is controlled by guild/user distinction which is bad.
     guild = ctx.guild
