@@ -428,9 +428,9 @@ async def build_rule_resp(
     result = ""
     if action in (Pali.PANA, Pali.ANTE):
         if exception:
-            result += "ona li ken toki ale."
+            result += "ona la sina ken toki ale."
         else:
-            result += "ona o toki pona taso."
+            result += "ona la sina o toki pona taso."
 
     response = f"{container_} {formatted} la mi {verb} e lawa. {result}"
     return response
