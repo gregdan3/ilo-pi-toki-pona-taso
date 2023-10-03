@@ -134,8 +134,7 @@ async def should_react_guild(message: Message) -> bool:
         LOG.debug("Ignoring guild message; guild has disabled")
         return False
 
-    # TODO: configurable timeframes
-    if not is_major_phase():
+    if not await DB.is_event_time(guild.id):
         LOG.debug("Ignoring guild message; not event time")
         return False
 

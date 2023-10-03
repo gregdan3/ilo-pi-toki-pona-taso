@@ -1,0 +1,2 @@
+NANPA_PI_JAN_PALI = 497549183847497739
+NASIN_PI_MA_ILO = "https://discord.gg/3kUGdHHcmj"

@@ -12,18 +12,23 @@ from discord.commands.context import ApplicationContext
 from tenpo.db import Pali, IjoSiko
 from tenpo.types import DiscordActor, DiscordContainer, MessageableGuildChannel
 from tenpo.__main__ import DB
+from tenpo.constants import NASIN_PI_MA_ILO, NANPA_PI_JAN_PALI
 from tenpo.log_utils import getLogger
 from tenpo.str_utils import (
-    CONTAINER_MAP,
     PALI_MAP,
+    CONTAINER_MAP,
     format_reacts,
     format_channel,
+    format_cron_data,
     format_role_info,
     format_opens_user,
+    format_date_ranges,
+    format_timing_data,
     get_discord_reacts,
     format_reacts_rules,
     format_rules_exceptions,
 )
+from tenpo.croniter_utils import EventTimer, InvalidEventTimer
 
 LOG = getLogger()
 
@@ -109,6 +114,110 @@ class CogRules(Cog):
         ma = ctx.guild
         assert ma  # nasa la ma li ken lawa e ma
         await cmd_upsert_rule(ctx, ma, ma, ephemeral=False)
+
+    @guild_rules.command(
+        name="nasin_tenpo",
+        description="ilo o lukin kepeken nasin tenpo seme",
+    )
+    @commands.has_permissions(administrator=True)
+    @option(
+        name="nasin",
+        description="mun la o open lon suno mun lon pimeja mun. wile la o kepeken tenpo wile.",
+        choices=["ale", "ala", "mun", "wile"],
+    )
+    async def guild_set_event_timing(
+        self,
+        ctx: ApplicationContext,
+        nasin: str,
+    ):
+        ma = ctx.guild
+        assert ma
+        if nasin == "wile":
+            try:
+                await DB.get_event_timer(ma.id)
+            except InvalidEventTimer as e:
+                await ctx.respond(
+                    "sina pana ala e nasin tenpo la sina ken ala kepeken nasin wile!"
+                )
+                return
+        await DB.set_timing(ma.id, nasin)
+        await ctx.respond("mi kama kepeken nasin __%s__" % nasin)
+
+    @guild_rules.command(
+        name="tenpo",
+        description="ilo o lukin lon tenpo seme. o kepeken nasin pi ilo Cron",
+    )
+    @commands.has_permissions(administrator=True)
+    @option(
+        name="tenpo_lili",
+        description="o open lon tenpo lili nanpa seme (pana ala la 0)",
+        choices=[str(i) for i in range(0, 60, 30)],
+    )
+    @option(
+        name="tenpo_suli",
+        description="o open lon tenpo suli nanpa seme (0-23. ken: 0,12 */6. pana ala la 0.)",
+    )
+    @option(
+        name="tenpo_suno_pi_tenpo_mun",
+        description="tenpo mun la o open lon tenpo suno seme (0-31. ken: */7 2,9,13,30. pana ala la *)",
+    )
+    @option(
+        name="tenpo_suno_pi_tenpo_suno_luka_tu",
+        description="tenpo suno luka tu la o open lon tenpo suno seme (0-6. mute li ken. pana ala la 6)",
+    )
+    @option(
+        name="tenpo_mun",
+        description="o open lon tenpo mun nanpa seme (1-12. mute li ken. ale li ken tan *. pana ala la *)",
+    )
+    @option(
+        name="nasin_tenpo",
+        description="tenpo o tan ma seme? (ni li ken UTC li ken CST li ken ante. pana ala la UTC)",
+    )
+    @option(
+        name="suli_tenpo",
+        description="tenpo o awen lon tenpo pi suli seme? (ken: 24h, 90m, 3d. pana ala la 24h)",
+    )
+    async def guild_set_event_time(
+        self,
+        ctx: ApplicationContext,
+        tenpo_lili: str = "0",
+        tenpo_suli: str = "0",
+        tenpo_suno_pi_tenpo_mun: str = "*",
+        tenpo_suno_pi_tenpo_suno_luka_tu: str = "6",
+        tenpo_mun: str = "*",
+        nasin_tenpo: str = "UTC",
+        suli_tenpo: str = "24h",
+    ):
+        ma = ctx.guild
+        assert ma  # nasa la ma li ken lawa e ma
+        cron = f"{tenpo_lili} {tenpo_suli} {tenpo_suno_pi_tenpo_mun} {tenpo_mun} {tenpo_suno_pi_tenpo_suno_luka_tu}"
+
+        try:
+            timer = EventTimer(cron, nasin_tenpo, suli_tenpo)
+        except InvalidEventTimer as e:
+            await ctx.respond(
+                "`%s`\n\no lukin e ale: \n`%s` \n`%s` \n`%s`"
+                % (e, cron, nasin_tenpo, suli_tenpo)
+            )
+            return
+
+        prospective_dates = [t for t in timer.get_ranges()]
+        formatted = format_date_ranges(prospective_dates)
+        if prospective_dates[0][1] > prospective_dates[1][0]:  # TODO
+            resp = "pakala li ken la mi pana ala! pini tenpo li lon insa pi open tenpo. o lukin: \n"
+
+            resp += formatted
+            await ctx.respond(resp)
+            return
+
+        resp = "tenpo kama li ni: \n"
+        resp += formatted
+
+        await DB.set_cron(ma.id, cron)
+        await DB.set_timezone(ma.id, nasin_tenpo)
+        await DB.set_length(ma.id, suli_tenpo)
+
+        await ctx.respond(resp)
 
     """
     User rules. They're nearly identical to guild ones.
@@ -359,10 +468,22 @@ async def cmd_list_rules(ctx: ApplicationContext, actor: DiscordActor, ephemeral
 
     if is_guild:
         role_id = await DB.get_role(actor.id)
-        role = guild.get_role(role_id)
-        if role:  # safety check in case configured role is deleted
+        if role_id and (role := guild.get_role(role_id)):
+            # safety check in case configured role is deleted
             role_info = format_role_info(role.name)
             blurbs.append(role_info)
+
+        timing = await DB.get_timing(actor.id)
+        blurbs.append("nasin tenpo ma li " + format_timing_data(timing))
+        if timing == "wile":
+            cron = await DB.get_cron(actor.id)
+            timezone = await DB.get_timezone(actor.id)
+            length = await DB.get_length(actor.id)
+            timer = await DB.get_event_timer(actor.id)
+
+            if cron and timezone and length:
+                ranges = format_date_ranges([t for t in timer.get_ranges()])
+                blurbs.append(format_cron_data(cron, timezone, length) + "\n" + ranges)
 
     result = "\n\n".join(blurbs)  # TODO: best order?
     await ctx.respond(result, ephemeral=ephemeral)
@@ -384,18 +505,34 @@ async def cmd_lawa_help(ctx: ApplicationContext, actor: DiscordActor, ephemeral:
     sona = "mi __ilo pi toki pona taso__. sina toki pona ala la mi pona e ni. o lukin e ken mi:\n"
     sona += f"- `{prefix} sona`: mi pana e toki ni.\n"
     sona += f"- `{prefix} ale`: mi pana e lawa ale sina.\n"
-    sona += f"- `{prefix} lukin [lukin]`: mi lukin ala lukin e toki sina.\n"
+    sona += f"- `{prefix} lukin [lukin|ala]`: mi lukin ala lukin e toki sina.\n"
 
-    sona += f"- `{prefix} [tomo|kulupu|ma] (ala)`: mi lukin e ijo. sina pana sin e ijo la mi lukin ala.\n"
+    sona += f"- `{prefix} [tomo|ma] (ala)`: mi lukin e ijo. sina pana sin e ijo la mi lukin ala.\n"
     sona += f"  - sina toki pona ala lon ijo la mi pona e ni.\n"
     sona += f"  - `ala` la mi lukin ala e ijo. ijo ni li ken lon insa pi ijo ante.\n"
     sona += f"  - sina wile lawa e ale la o kepeken `/lawa ma`.\n"
 
     if not is_guild:
-        sona += f"- `{prefix} open [toki]`: toki li lon open pi toki sina la mi lukin ala.\n"
-        sona += f"  - sina pana tu e toki sama la mi weka e ona.\n"
-        sona += f"- `{prefix} nasin [sitelen|weka]`: mi ken sitelen li ken weka e toki sina.\n"
-        sona += f"- `{prefix} sitelen [sitelen]`: mi sitelen e toki pona ala la mi pana e sitelen ni ale.\n"
+        sona += f"- `{prefix} open [toki]`: toki sina li ni lon open la mi lukin ala.\n"
+        sona += f"  - sina pana sin e toki la mi weka e ona.\n"
+        sona += f"  - open tu wan li ken. mi pana ala e open sin tan mute. o weka e toki lon."
+
+        sona += f"- `{prefix} nasin [sitelen|weka]`: sina toki pona ala la mi seme e toki sina.\n"
+        sona += f"- `{prefix} sitelen [sitelen]`: sina toki pona ala la mi pana e sitelen ken seme.\n"
     if is_guild:
-        sona += f"`- {prefix} poki [poki]`: mi lukin taso e jan pi poki ni. sina pana sin la mi lukin e jan ale.\n"
+        sona += f"- `{prefix} poki [poki]`: mi lukin taso e jan pi poki ni. sina pana sin la mi lukin e jan ale.\n"
+        sona += f"- `{prefix} tenpo [ijo mute]`: nasin `cron` la mi lukin e toki lon tenpo. o lukin: <https://crontab.guru/>\n"
+        sona += f"  - sina pana ala e `nasin_tenpo` la mi kepeken nasin `UTC`.\n"
+        sona += f"  - sina pana ala e `suli_tenpo` la mi kepeken `24h`\n"
+        sona += f"  - tenpo suno en ante li ken `*/7`. ni la sina ken kipisi e nanpa tenpo la mi lukin.\n"
+        sona += f"  - tenpo suno en ante li ken `2,6,11`. ni la nanpa tenpo li sama ni la mi lukin.\n"
+
+        sona += f"- `{prefix} nasin_tenpo [ale|ala|mun|wile]`: o lukin e toki ma lon nasin tenpo.\n"
+        sona += f"  - {format_timing_data('ale')}\n"
+        sona += f"  - {format_timing_data('ala')}\n"
+        sona += f"  - {format_timing_data('mun')}\n"
+        sona += f"  - {format_timing_data('mun')}\n"
+
+    sona += f"\n"
+    sona += f"ilo li tan jan Kekan San <@{NANPA_PI_JAN_PALI}>. wile la <[o kama lon ma ilo]({NASIN_PI_MA_ILO}). mu."
     await ctx.respond(sona, ephemeral=ephemeral)
