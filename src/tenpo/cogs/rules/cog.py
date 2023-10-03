@@ -287,6 +287,14 @@ class CogRules(Cog):
     async def user_toggle_opens(self, ctx: ApplicationContext, toki: str):
         user = ctx.user
         assert user
+
+        opens = await DB.get_opens(user.id)
+        if (len(opens) >= 4) and (toki not in opens):
+            await ctx.respond(
+                "sina pana pi mute ike. sina wile pana la o weka e toki lon."
+            )
+            return
+
         result = await DB.toggle_open(user.id, toki)
         if result:
             await ctx.respond(
