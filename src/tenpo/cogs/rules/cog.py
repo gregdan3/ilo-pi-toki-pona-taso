@@ -321,7 +321,7 @@ class CogRules(Cog):
 
         emojis = [e["emoji"] for e in emoji.emoji_list(sitelen)]
         reacts = get_discord_reacts(sitelen)
-        if len(emojis) + len(reacts) > 50:
+        if len(emojis) + len(reacts) > 25:
             await ctx.respond(
                 "sina pana e sitelen pi mute ike a. o lili e mute", ephemeral=True
             )
