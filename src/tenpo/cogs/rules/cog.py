@@ -543,7 +543,7 @@ async def cmd_lawa_help(ctx: ApplicationContext, actor: DiscordActor, ephemeral:
         sona += f"  - {format_timing_data('ale')}\n"
         sona += f"  - {format_timing_data('ala')}\n"
         sona += f"  - {format_timing_data('mun')}\n"
-        sona += f"  - {format_timing_data('mun')}\n"
+        sona += f"  - {format_timing_data('wile')}\n"
 
     sona += f"\n"
     sona += f"ilo li tan jan Kekan San <@{NANPA_PI_JAN_PALI}>. o kama lon ma ilo: <{NASIN_PI_MA_ILO}>. mu."
