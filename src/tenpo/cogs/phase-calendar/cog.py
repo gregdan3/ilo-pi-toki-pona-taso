@@ -57,6 +57,23 @@ class CogPhaseCalendar(Cog):
                     # taso tomo li ken awen lon.
                     LOG.warning("Channel %s not found in cache or on request", channel)
                     continue
+                except Exception as e:
+                    LOG.critical("Got an unknown error while fetching channel! %s", e)
+                    LOG.critical("Occurred on channel %s %s", channel_id, channel)
+                    LOG.critical("... %s", e.__dict__)
+                    LOG.critical("The moon calendar task will now die.")
+                    # TODO: o toki tawa mi
+                    raise e
+            try:
+                await channel.edit(name=title)
+            except discord.errors.Forbidden:
+                LOG.warning("Unable to edit channel %s. No permission?", channel_id)
+            except Exception as e:
+                LOG.critical("Got an unknown error while editing channe! %s", e)
+                LOG.critical("Occurred on channel %s %s", channel_id, channel)
+                LOG.critical("... %s", e.__dict__)
+                LOG.critical("The moon calendar task will now die.")
+                # TODO: o toki tawa mi
+                raise e
 
-            await channel.edit(name=title)
-            LOG.info("Updated channel %s", channel)
+            LOG.info("Updated channel %s to %s", channel_id, channel)
