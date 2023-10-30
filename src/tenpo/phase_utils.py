@@ -36,14 +36,27 @@ NEW_MOON_END_DEG = NEW_MOON_DEG + ONE_DAY_DEG
 FULL_MOON_END_DEG = FULL_MOON_DEG + ONE_DAY_DEG
 
 #               0               90            180             270           360
-PHASE_EMOJIS = "🌚🌑🌒🌒🌒🌒🌒🌓🌓🌔🌔🌔🌔🌔🌕🌝🌕🌖🌖🌖🌖🌖🌗🌗🌘🌘🌘🌘🌘🌑"
+PHASE_EMOJIS = "🌑🌑🌒🌒🌒🌒🌓🌓🌔🌔🌔🌔🌔🌕🌕🌕🌖🌖🌖🌖🌖🌗🌗🌘🌘🌘🌘🌘🌑"
 # yes it's hard to read so here's a traceable English version:
-# new face  -> 1 new  -> 5 crescent -> 2 quarter -> 5 gibbous  -> 1 full ->
-# full face -> 1 full -> 5 gibbous  -> 2 quarter -> 5 crescent -> 1 new
+# 2 new  -> 5 crescent -> 2 quarter -> 5 gibbous  ->
+# 3 full -> 5 gibbous  -> 2 quarter -> 5 crescent -> 1 new
 EMOJIS_LEN = len(PHASE_EMOJIS)
 EMOJI_STEP_SIZE = PHASE_LEN_DEG / EMOJIS_LEN
 
 assert PHASE_LEN_DAYS == EMOJIS_LEN
+
+FACE_MAP = {
+    # end users can assign any length they want
+    # so any phase could be made to map to a face phase
+    "🌗": "🌚",
+    "🌘": "🌚",
+    "🌑": "🌚",
+    "🌒": "🌚",
+    "🌓": "🌝",
+    "🌔": "🌝",
+    "🌕": "🌝",
+    "🌖": "🌝",
+}
 
 
 def now_skyfield():

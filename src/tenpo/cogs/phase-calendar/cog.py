@@ -10,7 +10,7 @@ from discord.ext import tasks
 from tenpo.types import MessageableGuildChannel
 from tenpo.__main__ import DB
 from tenpo.log_utils import getLogger
-from tenpo.phase_utils import current_emoji, is_major_phase
+from tenpo.phase_utils import FACE_MAP, current_emoji, is_major_phase
 
 LOG = getLogger()
 
@@ -18,9 +18,10 @@ LOG = getLogger()
 def get_calendar_title():
     # TODO: nimi li ken ante
     title = "mun tenpo"
-    if is_major_phase():
-        title = "o toki pona taso"
     phase_emoji = current_emoji()
+    if is_major_phase():
+        phase_emoji = FACE_MAP[phase_emoji]
+        title = "o toki pona taso"
     title = f"{phase_emoji} {title}"
     return title
 
