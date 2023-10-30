@@ -20,6 +20,7 @@ CONTAINER_MAP = {
 PALI_MAP = {Pali.PANA: "pana", Pali.ANTE: "ante", Pali.WEKA: "weka"}
 TIME_FMT = "<t:%s:%s>"
 ROLE_FMT = "<@&%s>"
+CHANNEL_FMT = "<#%s>"
 
 
 TIMING_MAP = {
@@ -105,7 +106,7 @@ def format_role_info(role_id: int):
 
 def format_channel(id: int):
     """categories are channels according to pycord and they use the same escape"""
-    return f"<#{id}>"
+    return CHANNEL_FMT % id
 
 
 def format_guild(id: int):
