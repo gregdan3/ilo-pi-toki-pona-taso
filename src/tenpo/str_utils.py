@@ -19,6 +19,7 @@ CONTAINER_MAP = {
 
 PALI_MAP = {Pali.PANA: "pana", Pali.ANTE: "ante", Pali.WEKA: "weka"}
 TIME_FMT = "<t:%s:%s>"
+ROLE_FMT = "<@&%s>"
 
 
 TIMING_MAP = {
@@ -97,8 +98,8 @@ def format_opens_user(opens: list[str]) -> str:
     return info + f_opens
 
 
-def format_role_info(role_name: str):
-    info = "mi lukin taso e jan pi poki __%s__" % role_name
+def format_role_info(role_id: int):
+    info = "mi lukin taso e jan pi poki ni: " + (ROLE_FMT % role_id)
     return info
 
 

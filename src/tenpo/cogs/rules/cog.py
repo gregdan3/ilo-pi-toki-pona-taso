@@ -482,7 +482,7 @@ async def cmd_list_rules(ctx: ApplicationContext, actor: DiscordActor, ephemeral
         role_id = await DB.get_role(actor.id)
         if role_id and (role := guild.get_role(role_id)):
             # safety check in case configured role is deleted
-            role_info = format_role_info(role.name)
+            role_info = format_role_info(role.id)
             blurbs.append(role_info)
 
         timing = await DB.get_timing(actor.id)
