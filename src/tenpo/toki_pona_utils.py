@@ -13,8 +13,8 @@ import enum
 import json
 import urllib.request
 from typing import List, Callable
-from functools import partial
 from collections import OrderedDict
+from functools import partial, cache
 
 # PDM
 import unidecode
@@ -170,6 +170,7 @@ def clean_sentence(s: str) -> str:
     return s
 
 
+@cache
 def clean_token(s: str, skip_dedupe=False) -> str:
     """Transform a token to better adhere to regex matching
 
@@ -186,6 +187,7 @@ def clean_token(s: str, skip_dedupe=False) -> str:
     return s
 
 
+@cache
 def score(nimi_ike: int, nimi_ale: int, p: float):
     return (nimi_ike / nimi_ale) <= (1 - p)
 
@@ -232,15 +234,18 @@ def is_toki_pona(
     return VERIFIER_MAP[mode](s, p)
 
 
+@cache
 def __token_is_tp_dict_set(s: str) -> bool:
     return s in DICTIONARY_SET
 
 
+@cache
 def __token_is_tp_dict_trie(s: str) -> bool:
     """Slower than _token_is_toki_pona_dict_set"""
     return s in DICTIONARY_TRIE
 
 
+@cache
 def _token_is_tp_dict(s: str) -> bool:
     return __token_is_tp_dict_set(s)
 
@@ -259,6 +264,7 @@ def _is_tp_dictionary(s: str, p: float) -> bool:
     )
 
 
+@cache
 def _token_is_tp_strict(s: str) -> bool:
     return not not re.fullmatch(STRICT_ASCII_ALLOW_N_RE, s)
 
@@ -278,6 +284,7 @@ def _is_tp_strict(s: str, p: float) -> bool:
     )
 
 
+@cache
 def _token_is_tp_loose(s: str) -> bool:
     return not not re.fullmatch(LOOSE_ASCII_RE, s)
 
@@ -297,10 +304,12 @@ def _is_tp_loose(s: str, p: float) -> bool:
     )
 
 
+@cache
 def __token_is_tp_alphabetic_set(s: str) -> bool:
     return set(s).issubset(ALPHABET_SET)
 
 
+@cache
 def __token_is_tp_alphabetic_regex(s: str) -> bool:
     """
     Slower than _token_is_toki_pona_alphabetic_set
@@ -308,6 +317,7 @@ def __token_is_tp_alphabetic_regex(s: str) -> bool:
     return not not re.fullmatch(ALPHABET_RE, s)
 
 
+@cache
 def _token_is_tp_alphabetic(s: str) -> bool:
     return __token_is_tp_alphabetic_set(s)
 
