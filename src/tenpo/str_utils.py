@@ -100,7 +100,12 @@ def format_opens_user(opens: list[str]) -> str:
 
 
 def format_role_info(role_id: int):
-    info = "mi lukin taso e jan pi poki ni: " + (ROLE_FMT % role_id)
+    info = "mi lukin taso e jan pi poki ni: __%s__" % (ROLE_FMT % role_id)
+    return info
+
+
+def format_removed_role_info(role_id: int):
+    info = "mi weka e poki ni: __%s__\nni la mi lukin e ale" % (ROLE_FMT % role_id)
     return info
 
 

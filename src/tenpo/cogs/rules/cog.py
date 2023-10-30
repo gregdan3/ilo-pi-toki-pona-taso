@@ -27,6 +27,7 @@ from tenpo.str_utils import (
     get_discord_reacts,
     format_reacts_rules,
     format_rules_exceptions,
+    format_removed_role_info,
 )
 from tenpo.croniter_utils import EventTimer, InvalidEventTimer
 
@@ -66,9 +67,9 @@ class CogRules(Cog):
 
         result = await DB.toggle_role(actor.id, poki.id)
         if result:
-            await ctx.respond("mi lukin taso e jan pi poki __%s__" % poki.name)
+            await ctx.respond(format_role_info(poki.id))
             return
-        await ctx.respond("mi weka e poki __%s__ la mi lukin e ale" % poki.name)
+        await ctx.respond(format_removed_role_info(poki.id))
 
     @guild_rules.command(name="tomo_tenpo", description="tomo seme o pana e sona tenpo")
     @option(name="tomo", description="tomo seme o mun tenpo")
