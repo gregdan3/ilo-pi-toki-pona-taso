@@ -35,32 +35,42 @@ class InvalidDelta(InvalidEventTimer):
         super().__init__("suli tenpo li pakala: `%s`" % delta)
 
 
+def parse_delta(delta_str: str) -> timedelta:
+    if not delta_str:
+        raise InvalidDelta(delta_str)
+    delta = timeparse(delta_str, granularity="minutes")
+    if not isinstance(delta, int):
+        raise InvalidDelta(delta_str)
+    delta = timedelta(seconds=delta)
+    return delta
+
+
+def parse_timezone(tz_str: str) -> ValidTZ:
+    if not tz_str:
+        raise InvalidTZ(tz_str)
+    tz = gettz(tz_str)
+    if not isinstance(tz, ValidTZ):
+        raise InvalidTZ(tz_str)
+    return tz
+
+
+def parse_cron(cron_str: str, tz: ValidTZ) -> croniter:
+    if not cron_str:
+        raise InvalidCron(cron_str)
+    if not croniter.is_valid(cron_str):
+        raise InvalidCron(cron_str)
+    return croniter(cron_str, datetime.now(tz))
+
+
 class EventTimer:
     __tz: ValidTZ
     __cron: croniter
     __delta: timedelta
 
     def __init__(self, cron_str: str, tz_str: str, delta_str: str):
-        if not tz_str:
-            raise InvalidTZ(tz_str)
-        if not cron_str:
-            raise InvalidCron(cron_str)
-        if not delta_str:
-            raise InvalidDelta(delta_str)
-
-        tz = gettz(tz_str)
-        if not isinstance(tz, ValidTZ):
-            raise InvalidTZ(tz_str)
-        self.__tz = tz
-
-        if not croniter.is_valid(cron_str):
-            raise InvalidCron(cron_str)
-        self.__cron = croniter(cron_str, datetime.now(tz))
-
-        delta = timeparse(delta_str, granularity="minutes")
-        if not isinstance(delta, int):
-            raise InvalidDelta(delta_str)
-        self.__delta = timedelta(seconds=delta)
+        self.__tz = parse_timezone(tz_str)
+        self.__cron = parse_cron(cron_str, self.__tz)
+        self.__delta = parse_delta(delta_str)
 
     def __normalize_to_now(self) -> datetime:
         """
