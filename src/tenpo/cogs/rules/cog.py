@@ -383,7 +383,7 @@ async def cmd_upsert_rule(
     else:
         LOG.error("Unknown item given to rules: %s", poki)
         LOG.error("... %s" % poki.__dict__)
-        await ctx.respond("mi ken ala lawa e ijo ni. sina seme?")
+        await ctx.respond("mi ken ala lawa e ni. ni li seme?")
         return
 
     action = await DB.upsert_rule(poki.id, ctype, jan_anu_ma.id, ala)
