@@ -530,7 +530,7 @@ async def cmd_lawa_help(ctx: ApplicationContext, actor: DiscordActor, ephemeral:
     if not is_guild:
         sona += f"- `{prefix} open [toki]`: toki sina li ni lon open la mi lukin ala.\n"
         sona += f"  - sina pana sin e toki la mi weka e ona.\n"
-        sona += f"  - open tu wan li ken. mi pana ala e open sin tan mute. o weka e toki lon."
+        sona += f"  - open tu wan li ken. mi pana ala e open sin tan mute. o weka e toki lon.\n"
 
         sona += f"- `{prefix} nasin [sitelen|weka]`: sina toki pona ala la mi seme e toki sina.\n"
         sona += f"- `{prefix} sitelen [sitelen]`: sina toki pona ala la mi pana e sitelen ken seme.\n"
