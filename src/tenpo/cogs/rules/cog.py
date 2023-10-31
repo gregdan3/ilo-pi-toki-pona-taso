@@ -468,11 +468,13 @@ async def cmd_list_rules(ctx: ApplicationContext, actor: DiscordActor, ephemeral
 
     if not is_guild:
         response = await DB.get_response(actor.id)
-        blurbs.append(f"sina toki pona ala la mi {response} e toki sina")
 
-        reacts = await DB.get_reacts(actor.id)
-        reacts_info = format_reacts_rules(reacts)
-        blurbs.append(reacts_info)
+        if response == "sitelen":
+            reacts = await DB.get_reacts(actor.id)
+            reacts_info = format_reacts_rules(reacts)
+            blurbs.append(reacts_info)
+        else:
+            blurbs.append(f"sina toki pona ala la mi {response} e toki sina")
 
         opens = await DB.get_opens(actor.id)
         if opens:
