@@ -36,7 +36,7 @@ NEW_MOON_END_DEG = NEW_MOON_DEG + ONE_DAY_DEG
 FULL_MOON_END_DEG = FULL_MOON_DEG + ONE_DAY_DEG
 
 #               0               90            180             270           360
-PHASE_EMOJIS = "🌑🌑🌒🌒🌒🌒🌓🌓🌔🌔🌔🌔🌔🌕🌕🌕🌖🌖🌖🌖🌖🌗🌗🌘🌘🌘🌘🌘🌑"
+PHASE_EMOJIS = "🌑🌑🌒🌒🌒🌒🌒🌓🌓🌔🌔🌔🌔🌔🌕🌕🌕🌖🌖🌖🌖🌖🌗🌗🌘🌘🌘🌘🌘🌑"
 # yes it's hard to read so here's a traceable English version:
 # 2 new  -> 5 crescent -> 2 quarter -> 5 gibbous  ->
 # 3 full -> 5 gibbous  -> 2 quarter -> 5 crescent -> 1 new
