@@ -58,6 +58,8 @@ class CogPhaseCalendar(Cog):
                     # taso tomo li ken awen lon.
                     LOG.warning("Channel %s not found in cache or on request", channel)
                     continue
+                except discord.errors.DiscordServerError:
+                    LOG.warning("Unable to reach Discord. Skipping channel %s", channel)
                 except Exception as e:
                     LOG.critical("Got an unknown error while fetching channel! %s", e)
                     LOG.critical("Occurred on channel %s %s", channel_id, channel)
@@ -69,6 +71,8 @@ class CogPhaseCalendar(Cog):
                 await channel.edit(name=title)
             except discord.errors.Forbidden:
                 LOG.warning("Unable to edit channel %s. No permission?", channel_id)
+            except discord.errors.DiscordServerError:
+                LOG.warning("Unable to reach Discord. Skipping channel %s", channel)
             except Exception as e:
                 LOG.critical("Got an unknown error while editing channe! %s", e)
                 LOG.critical("Occurred on channel %s %s", channel_id, channel)
