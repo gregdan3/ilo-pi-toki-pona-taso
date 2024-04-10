@@ -13,8 +13,8 @@ import enum
 import json
 import urllib.request
 from typing import List, Callable
+from functools import cache, partial
 from collections import OrderedDict
-from functools import partial, cache
 
 # PDM
 import unidecode
@@ -116,19 +116,18 @@ TOKEN_CLEANERS = [
     partial(re.sub, CONSECUTIVE_DUPLICATES_RE, r"\1"),  # rm consecutive duplicates
 ]
 
-JASIMA_LINK = "https://linku.la/jasima/data.json"
+LINKU_API_URL = "https://api.linku.la/v1/words?lang=en"
 
 
 def download(link: str) -> str:
     return urllib.request.urlopen(link).read().decode("utf8")
 
 
-JASIMA = json.loads(download(JASIMA_LINK))
-JASIMA = JASIMA["data"]
+LINKU = json.loads(download(LINKU_API_URL))
 DICTIONARY = [
     key
-    for key in JASIMA.keys()
-    if int(JASIMA[key]["recognition"]["2023-09"]) > 22
+    for key in LINKU.keys()
+    if int(LINKU[key]["usage"]["2023-09"]) > 22
     # at and below 22, words break phonotactics
     # violates my assumption that verifier methods get stronger
 ]
