@@ -120,7 +120,11 @@ LINKU_API_URL = "https://api.linku.la/v1/words?lang=en"
 
 
 def download(link: str) -> str:
-    return urllib.request.urlopen(link).read().decode("utf8")
+    HEADERS = {"User-Agent": "ilo pi toki pona taso"}
+
+    req = urllib.request.Request(link, headers=HEADERS)
+    resp = urllib.request.urlopen(req).read().decode("utf-8")
+    return resp
 
 
 LINKU = json.loads(download(LINKU_API_URL))
