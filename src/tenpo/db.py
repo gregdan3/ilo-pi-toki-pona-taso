@@ -434,7 +434,6 @@ class TenpoDB:
                     else rules[rule.ctype].add(rule.id)
                 )
 
-            LOG.info(rules, exceptions)
             return rules, exceptions
 
     async def in_checked_channel(
