@@ -1,6 +1,6 @@
 FROM python:3.11-slim AS deps
 
-RUN python -m pip --no-cache-dir install pdm==2.9.3
+RUN python -m pip --no-cache-dir install pdm==2.13.2
 COPY pyproject.toml pdm.lock /project/
 WORKDIR /project
 RUN mkdir __pypackages__ && pdm sync --prod --no-editable -vv
