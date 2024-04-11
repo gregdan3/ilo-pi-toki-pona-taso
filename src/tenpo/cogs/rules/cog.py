@@ -280,7 +280,7 @@ class CogRules(Cog):
         tomo: MessageableGuildChannel | CategoryChannel,
         lukin_ala: bool = False,
     ):
-        await cmd_upsert_rule(ctx, ctx.user, tomo, ala, ephemeral=True)
+        await cmd_upsert_rule(ctx, ctx.user, tomo, lukin_ala, ephemeral=True)
 
     @user_rules.command(name="ma", description="ma ni la sina o toki ala toki pona?")
     async def user_toggle_guild(
