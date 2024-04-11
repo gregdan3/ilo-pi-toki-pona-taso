@@ -101,17 +101,20 @@ class CogRules(Cog):
         name="tomo", description="tomo pi ma ni la ale o toki ala toki pona?"
     )
     @option(name="tomo", description="tomo seme, kulupu seme")
-    @option(name="ala", description="tomo la ale li ken toki pona ala")
+    @option(
+        name="lukin_ala",
+        description="tomo la ilo li lukin ala. ni la ale li ken toki pona ala",
+    )
     @commands.has_permissions(administrator=True)
     async def guild_toggle_channel(
         self,
         ctx: ApplicationContext,
         tomo: MessageableGuildChannel | CategoryChannel,
-        ala: bool = False,
+        lukin_ala: bool = False,
     ):
         actor = ctx.guild
         assert actor
-        await cmd_upsert_rule(ctx, actor, tomo, ala, ephemeral=False)
+        await cmd_upsert_rule(ctx, actor, tomo, lukin_ala, ephemeral=False)
 
     @guild_rules.command(name="ma", description="ma ni la ale o toki ala toki pona?")
     @commands.has_permissions(administrator=True)
@@ -267,12 +270,15 @@ class CogRules(Cog):
 
     @user_rules.command(name="tomo", description="tomo la sina o toki ala toki pona?")
     @option(name="tomo", description="tomo seme, kulupu seme")
-    @option(name="ala", description="tomo la sina ken toki pona ala")
+    @option(
+        name="lukin_ala",
+        description="tomo la ilo li lukin la. ni la sina ken toki pona ala",
+    )
     async def user_toggle_channel(
         self,
         ctx: ApplicationContext,
         tomo: MessageableGuildChannel | CategoryChannel,
-        ala: bool = False,
+        lukin_ala: bool = False,
     ):
         await cmd_upsert_rule(ctx, ctx.user, tomo, ala, ephemeral=True)
 
@@ -370,7 +376,7 @@ async def cmd_upsert_rule(
     ctx: ApplicationContext,
     jan_anu_ma: DiscordActor,
     poki: DiscordContainer,
-    ala: bool = False,
+    lukin_ala: bool = False,
     ephemeral: bool = False,
 ):
     ctype = IjoSiko.CHANNEL
@@ -386,8 +392,8 @@ async def cmd_upsert_rule(
         await ctx.respond("mi ken ala lawa e ni. ni li seme?")
         return
 
-    action = await DB.upsert_rule(poki.id, ctype, jan_anu_ma.id, ala)
-    response = await build_rule_resp(poki, ctype, action, ala)
+    action = await DB.upsert_rule(poki.id, ctype, jan_anu_ma.id, lukin_ala)
+    response = await build_rule_resp(poki, ctype, action, lukin_ala)
     await ctx.respond(response, ephemeral=ephemeral)
 
 
