@@ -55,6 +55,12 @@ class CogRules(Cog):
         assert actor
         await cmd_list_rules(ctx, actor, ephemeral=True)
 
+    @guild_rules.command(name="weka", description="o weka e lawa ale ma")
+    async def guild_delete_rules(self, ctx: ApplicationContext):
+        actor = ctx.guild
+        assert actor
+        await cmd_delete_rules(ctx, actor, ephemeral=True)
+
     @guild_rules.command(name="poki", description="ma ni la jan poki o toki pona taso")
     @option(
         name="poki",
@@ -251,6 +257,10 @@ class CogRules(Cog):
     @user_rules.command(name="ale", description="lawa sina li seme?")
     async def user_list_rules(self, ctx: ApplicationContext):
         await cmd_list_rules(ctx, ctx.user, ephemeral=True)
+
+    @user_rules.command(name="weka", description="o weka e lawa ale sina")
+    async def user_delete_rules(self, ctx: ApplicationContext):
+        await cmd_delete_rules(ctx, ctx.user, ephemeral=True)
 
     @user_rules.command(name="lukin", description="mi o lukin ala lukin e toki sina?")
     @option(name="lukin", choices=["lukin", "ala"])
@@ -508,6 +518,19 @@ async def cmd_list_rules(ctx: ApplicationContext, actor: DiscordActor, ephemeral
 
     result = "\n\n".join(blurbs)  # TODO: best order?
     await ctx.respond(result, ephemeral=ephemeral)
+
+
+async def cmd_delete_rules(
+    ctx: ApplicationContext, actor: DiscordActor, ephemeral: bool
+):
+    guild = ctx.guild
+    assert guild
+    user = ctx.user
+    assert user
+
+    await DB.reset_config(actor.id)
+    await DB.reset_rules(actor.id)
+    await ctx.respond("mi weka e lawa!", ephemeral=ephemeral)
 
 
 async def cmd_lawa_help(ctx: ApplicationContext, actor: DiscordActor, ephemeral: bool):

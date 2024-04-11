@@ -207,6 +207,12 @@ class TenpoDB:
             e = await self.__get_entity(s, eid)
             return e.config
 
+    async def __set_config(self, eid: int, value: JSONType):
+        async with self.session() as s:
+            e = await self.__get_entity(s, eid)
+            e.config = value
+            await s.commit()
+
     async def __get_config_item(
         self, eid: int, key: ConfigKey, default: Any = None
     ) -> Optional[JSONType]:
@@ -225,6 +231,20 @@ class TenpoDB:
             entity.config[key.value] = value  # type: ignore
             # you can assign to Column with `sqlalchemy_json`
             await s.commit()
+
+    async def reset_config(self, eid: int):
+        await self.__set_config(eid, {})
+
+    async def reset_rules(self, eid: int):
+        rules, exceptions = await self.list_rules(eid)
+        for ctype, ids in rules.items():
+            for id in ids:
+                resp = await self.upsert_rule(id, ctype, eid, False)
+                assert resp == Pali.WEKA, (id, ctype, eid, False, resp)
+        for ctype, ids in exceptions.items():
+            for id in ids:
+                resp = await self.upsert_rule(id, ctype, eid, True)
+                assert resp == Pali.WEKA, (id, ctype, eid, True, resp)
 
     async def set_reacts(self, eid: int, reacts: List[str]):
         await self.__set_config_item(eid, ConfigKey.REACTS, reacts)
@@ -408,10 +428,13 @@ class TenpoDB:
 
             for rule in found_rules:
                 assert isinstance(rule.id, int)
-                exceptions[rule.ctype].add(rule.id) if rule.exception else rules[
-                    rule.ctype
-                ].add(rule.id)
+                (
+                    exceptions[rule.ctype].add(rule.id)
+                    if rule.exception
+                    else rules[rule.ctype].add(rule.id)
+                )
 
+            LOG.info(rules, exceptions)
             return rules, exceptions
 
     async def in_checked_channel(
