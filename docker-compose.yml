@@ -1,5 +1,4 @@
 ---
-version: "3.8"
 services:
   bot:
     image: "gregdan3/ilo-pi-toki-pona-taso:${VERSION:-latest}"
