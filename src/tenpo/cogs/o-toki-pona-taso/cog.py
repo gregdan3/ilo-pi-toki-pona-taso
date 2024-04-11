@@ -61,10 +61,8 @@ class CogOTokiPonaTaso(Cog):
         react = await get_own_react(before)
         before_ok = react is None
         after_ok = is_toki_pona(after.content)
-        LOG.debug("validity: %s, %s", before_ok, after_ok)
 
         if before_ok == after_ok:
-            LOG.debug("Ignoring edit; did not change validity")
             return
         if before_ok and not after_ok:
             await respond(message)
