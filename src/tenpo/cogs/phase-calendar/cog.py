@@ -2,6 +2,7 @@
 from typing import cast
 
 # PDM
+import discord
 from discord import Bot, Cog
 from discord.ext import tasks
 
@@ -37,14 +38,24 @@ class CogPhaseCalendar(Cog):
         if channel:
             return channel
 
-        channel = cast(
-            MessageableGuildChannel, await self.bot.fetch_channel(channel_id)
-        )
+        try:
+            channel = cast(
+                MessageableGuildChannel,
+                await self.bot.fetch_channel(channel_id),
+            )
+        except discord.errors.NotFound:
+            LOG.warning("Channel %s may no longer exist", channel_id)
+        except discord.errors.Forbidden:
+            LOG.warning("Channel %s is inaccessible", channel_id)
 
-        if channel:
-            return channel
+        return channel
 
-        return None
+    async def edit_channel(self, channel: MessageableGuildChannel, title: str) -> bool:
+        try:
+            _ = await channel.edit(name=title)
+        except discord.errors.Forbidden:
+            LOG.warning("Channel %s may not be edited", channel)
+        return True
 
     @tasks.loop(minutes=30)
     async def moon_calendar(self):
@@ -59,12 +70,20 @@ class CogPhaseCalendar(Cog):
                 channel = await self.fetch_channel(channel_id)
                 if not channel:
                     continue
-                _ = await channel.edit(name=title)
-                LOG.info("Updated channel %s to %s", channel_id, channel)
 
+                result = await self.edit_channel(channel, title)
+                if result:
+                    LOG.info("Updated channel %s to %s", channel_id, channel)
+
+            except discord.errors.HTTPException:
+                pass
+            except discord.errors.DiscordException as e:
+                LOG.error("Got a DiscordException while editing channel! %s", e)
+                LOG.error("Occurred on channel %s %s", channel_id, channel)
+                LOG.error("... %s", e.__dict__)
+                LOG.error("Swallowing the error in the hopes of the task surviving.")
             except Exception as e:
                 LOG.error("Got an error while editing channel! %s", e)
                 LOG.error("Occurred on channel %s %s", channel_id, channel)
                 LOG.error("... %s", e.__dict__)
                 LOG.error("Swallowing the error in the hopes of the task surviving.")
-                continue
