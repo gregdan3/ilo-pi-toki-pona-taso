@@ -2,7 +2,6 @@
 from typing import cast
 
 # PDM
-import discord
 from discord import Bot, Cog
 from discord.ext import tasks
 
@@ -28,57 +27,44 @@ def get_calendar_title():
 
 class CogPhaseCalendar(Cog):
     def __init__(self, bot: Bot):
+        super().__init__()
         self.bot: Bot = bot
-        self.moon_calendar.start()
+        _ = self.moon_calendar.start()
+
+    async def fetch_channel(self, channel_id: int) -> MessageableGuildChannel | None:
+        assert isinstance(channel_id, int)
+        channel = cast(MessageableGuildChannel, self.bot.get_channel(channel_id))
+        if channel:
+            return channel
+
+        channel = cast(
+            MessageableGuildChannel, await self.bot.fetch_channel(channel_id)
+        )
+
+        if channel:
+            return channel
+
+        return None
 
     @tasks.loop(minutes=30)
     async def moon_calendar(self):
         title = get_calendar_title()
-
         moon_channels = await DB.get_calendars()
         LOG.debug(moon_channels)
 
+        channel = None
+        channel_id = None
         for channel_id in moon_channels:
-            assert isinstance(channel_id, int)
-            channel = cast(MessageableGuildChannel, self.bot.get_channel(channel_id))
-
-            if not channel:
-                LOG.warning("Channel %s not found in cache", channel)
-                try:
-                    channel = cast(
-                        MessageableGuildChannel,
-                        await self.bot.fetch_channel(channel_id),
-                    )
-                except discord.errors.Forbidden:
-                    LOG.warning("Channel %s no longer accessible.", channel)
-                    continue
-                except discord.errors.NotFound:
-                    # NOTE: o weka ala tan ilo awen tan ni:
-                    # ilo Siko li ken pakala li ken pana ala e tomo.
-                    # taso tomo li ken awen lon.
-                    LOG.warning("Channel %s not found in cache or on request", channel)
-                    continue
-                except discord.errors.DiscordServerError:
-                    LOG.warning("Unable to reach Discord. Skipping channel %s", channel)
-                except Exception as e:
-                    LOG.critical("Got an unknown error while fetching channel! %s", e)
-                    LOG.critical("Occurred on channel %s %s", channel_id, channel)
-                    LOG.critical("... %s", e.__dict__)
-                    LOG.critical("The moon calendar task will now die.")
-                    # TODO: o toki tawa mi
-                    raise e
             try:
-                await channel.edit(name=title)
-            except discord.errors.Forbidden:
-                LOG.warning("Unable to edit channel %s. No permission?", channel_id)
-            except discord.errors.DiscordServerError:
-                LOG.warning("Unable to reach Discord. Skipping channel %s", channel)
-            except Exception as e:
-                LOG.critical("Got an unknown error while editing channe! %s", e)
-                LOG.critical("Occurred on channel %s %s", channel_id, channel)
-                LOG.critical("... %s", e.__dict__)
-                LOG.critical("The moon calendar task will now die.")
-                # TODO: o toki tawa mi
-                raise e
+                channel = await self.fetch_channel(channel_id)
+                if not channel:
+                    continue
+                _ = await channel.edit(name=title)
+                LOG.info("Updated channel %s to %s", channel_id, channel)
 
-            LOG.info("Updated channel %s to %s", channel_id, channel)
+            except Exception as e:
+                LOG.error("Got an error while editing channel! %s", e)
+                LOG.error("Occurred on channel %s %s", channel_id, channel)
+                LOG.error("... %s", e.__dict__)
+                LOG.error("Swallowing the error in the hopes of the task surviving.")
+                continue
