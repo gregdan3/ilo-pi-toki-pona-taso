@@ -16,11 +16,10 @@ dependencies = [
     "sqlalchemy-utils",
     "aiosqlite",
     "sqlalchemy-json",
-    "unidecode",
     "emoji",
-    "marisa-trie>=1.0.0",
     "croniter>=1.4.1",
     "pytimeparse>=1.1.8",
+    "sonatoki>=0.1.3",
 ]
 requires-python = ">=3.10"
 license = { text = "" }

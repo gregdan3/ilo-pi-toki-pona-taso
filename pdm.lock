@@ -3,10 +3,9 @@
 
 [metadata]
 groups = ["default", "dev"]
-cross_platform = true
-static_urls = false
-lock_version = "4.3"
-content_hash = "sha256:f013a5682056c96c827f3d02999e38abdcb33dd2dcfc4e3cd6e248fe03c9a86c"
+strategy = ["cross_platform"]
+lock_version = "4.4.1"
+content_hash = "sha256:3b70f3e8932aa1066448f0cb541da6954c0f9a7d02203e5d29387fedd7f6df45"
 
 [[package]]
 name = "aiodns"
@@ -573,52 +572,6 @@ files = [
 ]
 
 [[package]]
-name = "marisa-trie"
-version = "1.0.0"
-requires_python = ">=3.7"
-summary = "Static memory-efficient and fast Trie-like structures for Python."
-dependencies = [
-    "setuptools",
-]
-files = [
-    {file = "marisa-trie-1.0.0.tar.gz", hash = "sha256:d8a68301f023a724eb379aaa1b10f88a9e1a458cc8a41b527c62507859b4a4d2"},
-    {file = "marisa_trie-1.0.0-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:ac817d167f84bdc4de2a737fb5ffb635ba1a3fdf3dbbcc06541b2cb420416e79"},
-    {file = "marisa_trie-1.0.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:6bc75721f4fb8c1d1d0812d2ed17e57ff77e7192c792114af941c12dab1a4346"},
-    {file = "marisa_trie-1.0.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:210cfa143a5f5dc5038a4255adc891eec4d55aa7eff409b70434b796b5de0f1f"},
-    {file = "marisa_trie-1.0.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:9794b840d4a211b78816ffb7839ac205e22d895f368b8d14fdf00e4a9615e6a5"},
-    {file = "marisa_trie-1.0.0-cp310-cp310-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:b29aecbffc474bb0353d9c73608bcb9fb36b1a44d9bf707e973c1ce8e63bda7b"},
-    {file = "marisa_trie-1.0.0-cp310-cp310-musllinux_1_1_i686.whl", hash = "sha256:6ea5e2436978c586f3a74b171eef088167291cddf71dbf4681418f61267d2254"},
-    {file = "marisa_trie-1.0.0-cp310-cp310-musllinux_1_1_x86_64.whl", hash = "sha256:a1a9d78d9f3010fcb8c1a8c40565bb5115cd55766d501bb85828ce6d56e32314"},
-    {file = "marisa_trie-1.0.0-cp310-cp310-win32.whl", hash = "sha256:bd1fa1b82272114b0f81595921f37ada7f29227f2ce23ef228a1af4ae0dbfe0e"},
-    {file = "marisa_trie-1.0.0-cp310-cp310-win_amd64.whl", hash = "sha256:f43f73814678304a9384ada1ba15ef5f46e557f566a0209cc3d4bb0eda4792ad"},
-    {file = "marisa_trie-1.0.0-cp311-cp311-macosx_10_9_universal2.whl", hash = "sha256:0654229e476ac07719f9e427fafb902473eb5ca4284690cd2960872285945ee8"},
-    {file = "marisa_trie-1.0.0-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:a6c6800674003f60975cb578b1240dce91c8e276a1bdec9c0e280b9ef296fb54"},
-    {file = "marisa_trie-1.0.0-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:6fdd5e619fa44dba41276220186772c926860dfa9b791d8d8f29b3ce6c65a23a"},
-    {file = "marisa_trie-1.0.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:f53c54d7deeff79b65b3310ff763aa95e61cb6c5fe4bf63bc0ebe6e98be91fa4"},
-    {file = "marisa_trie-1.0.0-cp311-cp311-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:e9addb7095f7ba8076febb2928ed4be5a247ee31064da770ae97c3a772b9216d"},
-    {file = "marisa_trie-1.0.0-cp311-cp311-musllinux_1_1_i686.whl", hash = "sha256:eef6c2e2daacca171296c24f8972af2bbbfd529de678fd4c4c7e2b216f799e84"},
-    {file = "marisa_trie-1.0.0-cp311-cp311-musllinux_1_1_x86_64.whl", hash = "sha256:97187816838f5cdd5aeb7d1b170a8fd6688596e5ce53186696de18bb5abd8369"},
-    {file = "marisa_trie-1.0.0-cp311-cp311-win32.whl", hash = "sha256:9297a6b1fff4761d493041a172c45e86ab409f1d0fb88d6a427e4d3f8d5e810f"},
-    {file = "marisa_trie-1.0.0-cp311-cp311-win_amd64.whl", hash = "sha256:8ce63d85d7a6821fee54bccf5c4d54f53b1d7ab48189db0779514f659f629cf9"},
-    {file = "marisa_trie-1.0.0-pp310-pypy310_pp73-macosx_10_9_x86_64.whl", hash = "sha256:2028a77a21d56440175405fc8cf872e10f2af2ac928aa09f5958b0d036194c32"},
-    {file = "marisa_trie-1.0.0-pp310-pypy310_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:705614e13ca9b6b5751fd9baed7ae33517a0874e691e51492cdf85db056281d2"},
-    {file = "marisa_trie-1.0.0-pp310-pypy310_pp73-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:6d8d292a45b4e8db985b395f6972a6177dee2fe399a739e02f99301f59908ef0"},
-    {file = "marisa_trie-1.0.0-pp310-pypy310_pp73-win_amd64.whl", hash = "sha256:8a3b2de663aa0fa0251d0db8f336d8f5f4b8837c5ca34590cd662df13bef81a2"},
-    {file = "marisa_trie-1.0.0-pp37-pypy37_pp73-macosx_10_9_x86_64.whl", hash = "sha256:63241a0714c8eaf93d35799a183f70d34b55a2d547086f9572a1f1fc62343b61"},
-    {file = "marisa_trie-1.0.0-pp37-pypy37_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:00d743b069789c397c3fc677069146093b9df06e467a85ee9d5384cfce11823f"},
-    {file = "marisa_trie-1.0.0-pp37-pypy37_pp73-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:b8a18ac806d147583d2f1c030abe0d69a9e3efa899f0d5e1af01807ba8649696"},
-    {file = "marisa_trie-1.0.0-pp37-pypy37_pp73-win_amd64.whl", hash = "sha256:f534687cdfc570db8805f7a092033077d93bce54bf3cc46e7e098e9b15875749"},
-    {file = "marisa_trie-1.0.0-pp38-pypy38_pp73-macosx_10_9_x86_64.whl", hash = "sha256:9baf968893dc7c724c7e2d1958549c9c09774c1511bee13977edb8d5c2e668dc"},
-    {file = "marisa_trie-1.0.0-pp38-pypy38_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:d81c905267dc1bc983e9c4b0e847f960560d9257b9c40724e90814655c734670"},
-    {file = "marisa_trie-1.0.0-pp38-pypy38_pp73-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:b08caa6ce91b50130f857658f5370ed16b9d6fc44ccedf74d4a5efbea9ccf3eb"},
-    {file = "marisa_trie-1.0.0-pp38-pypy38_pp73-win_amd64.whl", hash = "sha256:88533e799ab8a257896635b917850ebeef82b3d5b54c27736dccb2ce0f5d24e0"},
-    {file = "marisa_trie-1.0.0-pp39-pypy39_pp73-macosx_10_9_x86_64.whl", hash = "sha256:9e270208050788a3c92de28a691a25719c933fd086fa8d39cb0410d70fadfb54"},
-    {file = "marisa_trie-1.0.0-pp39-pypy39_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:3bbb601ba1fee5ff1019c71149e1bc98fb9d5cfadf1790b934da24c49147e205"},
-    {file = "marisa_trie-1.0.0-pp39-pypy39_pp73-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:34ec0f3bb54479a49dd60bb712fee851e7c135504d84efcf030815a07a9a96f5"},
-    {file = "marisa_trie-1.0.0-pp39-pypy39_pp73-win_amd64.whl", hash = "sha256:eba700d6f24906dff4e593be1af93ebf38c841b0755ee701c816674f133dee29"},
-]
-
-[[package]]
 name = "multidict"
 version = "6.0.4"
 requires_python = ">=3.7"
@@ -917,6 +870,61 @@ files = [
 ]
 
 [[package]]
+name = "regex"
+version = "2024.4.28"
+requires_python = ">=3.8"
+summary = "Alternative regular expression module, to replace re."
+files = [
+    {file = "regex-2024.4.28-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:cd196d056b40af073d95a2879678585f0b74ad35190fac04ca67954c582c6b61"},
+    {file = "regex-2024.4.28-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:8bb381f777351bd534462f63e1c6afb10a7caa9fa2a421ae22c26e796fe31b1f"},
+    {file = "regex-2024.4.28-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:47af45b6153522733aa6e92543938e97a70ce0900649ba626cf5aad290b737b6"},
+    {file = "regex-2024.4.28-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:99d6a550425cc51c656331af0e2b1651e90eaaa23fb4acde577cf15068e2e20f"},
+    {file = "regex-2024.4.28-cp310-cp310-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:bf29304a8011feb58913c382902fde3395957a47645bf848eea695839aa101b7"},
+    {file = "regex-2024.4.28-cp310-cp310-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:92da587eee39a52c91aebea8b850e4e4f095fe5928d415cb7ed656b3460ae79a"},
+    {file = "regex-2024.4.28-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:6277d426e2f31bdbacb377d17a7475e32b2d7d1f02faaecc48d8e370c6a3ff31"},
+    {file = "regex-2024.4.28-cp310-cp310-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:28e1f28d07220c0f3da0e8fcd5a115bbb53f8b55cecf9bec0c946eb9a059a94c"},
+    {file = "regex-2024.4.28-cp310-cp310-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:aaa179975a64790c1f2701ac562b5eeb733946eeb036b5bcca05c8d928a62f10"},
+    {file = "regex-2024.4.28-cp310-cp310-musllinux_1_1_aarch64.whl", hash = "sha256:6f435946b7bf7a1b438b4e6b149b947c837cb23c704e780c19ba3e6855dbbdd3"},
+    {file = "regex-2024.4.28-cp310-cp310-musllinux_1_1_i686.whl", hash = "sha256:19d6c11bf35a6ad077eb23852827f91c804eeb71ecb85db4ee1386825b9dc4db"},
+    {file = "regex-2024.4.28-cp310-cp310-musllinux_1_1_ppc64le.whl", hash = "sha256:fdae0120cddc839eb8e3c15faa8ad541cc6d906d3eb24d82fb041cfe2807bc1e"},
+    {file = "regex-2024.4.28-cp310-cp310-musllinux_1_1_s390x.whl", hash = "sha256:e672cf9caaf669053121f1766d659a8813bd547edef6e009205378faf45c67b8"},
+    {file = "regex-2024.4.28-cp310-cp310-musllinux_1_1_x86_64.whl", hash = "sha256:f57515750d07e14743db55d59759893fdb21d2668f39e549a7d6cad5d70f9fea"},
+    {file = "regex-2024.4.28-cp310-cp310-win32.whl", hash = "sha256:a1409c4eccb6981c7baabc8888d3550df518add6e06fe74fa1d9312c1838652d"},
+    {file = "regex-2024.4.28-cp310-cp310-win_amd64.whl", hash = "sha256:1f687a28640f763f23f8a9801fe9e1b37338bb1ca5d564ddd41619458f1f22d1"},
+    {file = "regex-2024.4.28-cp311-cp311-macosx_10_9_universal2.whl", hash = "sha256:84077821c85f222362b72fdc44f7a3a13587a013a45cf14534df1cbbdc9a6796"},
+    {file = "regex-2024.4.28-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:b45d4503de8f4f3dc02f1d28a9b039e5504a02cc18906cfe744c11def942e9eb"},
+    {file = "regex-2024.4.28-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:457c2cd5a646dd4ed536c92b535d73548fb8e216ebee602aa9f48e068fc393f3"},
+    {file = "regex-2024.4.28-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:2b51739ddfd013c6f657b55a508de8b9ea78b56d22b236052c3a85a675102dc6"},
+    {file = "regex-2024.4.28-cp311-cp311-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:459226445c7d7454981c4c0ce0ad1a72e1e751c3e417f305722bbcee6697e06a"},
+    {file = "regex-2024.4.28-cp311-cp311-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:670fa596984b08a4a769491cbdf22350431970d0112e03d7e4eeaecaafcd0fec"},
+    {file = "regex-2024.4.28-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:fe00f4fe11c8a521b173e6324d862ee7ee3412bf7107570c9b564fe1119b56fb"},
+    {file = "regex-2024.4.28-cp311-cp311-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:36f392dc7763fe7924575475736bddf9ab9f7a66b920932d0ea50c2ded2f5636"},
+    {file = "regex-2024.4.28-cp311-cp311-musllinux_1_1_aarch64.whl", hash = "sha256:23a412b7b1a7063f81a742463f38821097b6a37ce1e5b89dd8e871d14dbfd86b"},
+    {file = "regex-2024.4.28-cp311-cp311-musllinux_1_1_i686.whl", hash = "sha256:f1d6e4b7b2ae3a6a9df53efbf199e4bfcff0959dbdb5fd9ced34d4407348e39a"},
+    {file = "regex-2024.4.28-cp311-cp311-musllinux_1_1_ppc64le.whl", hash = "sha256:499334ad139557de97cbc4347ee921c0e2b5e9c0f009859e74f3f77918339257"},
+    {file = "regex-2024.4.28-cp311-cp311-musllinux_1_1_s390x.whl", hash = "sha256:0940038bec2fe9e26b203d636c44d31dd8766abc1fe66262da6484bd82461ccf"},
+    {file = "regex-2024.4.28-cp311-cp311-musllinux_1_1_x86_64.whl", hash = "sha256:66372c2a01782c5fe8e04bff4a2a0121a9897e19223d9eab30c54c50b2ebeb7f"},
+    {file = "regex-2024.4.28-cp311-cp311-win32.whl", hash = "sha256:c77d10ec3c1cf328b2f501ca32583625987ea0f23a0c2a49b37a39ee5c4c4630"},
+    {file = "regex-2024.4.28-cp311-cp311-win_amd64.whl", hash = "sha256:fc0916c4295c64d6890a46e02d4482bb5ccf33bf1a824c0eaa9e83b148291f90"},
+    {file = "regex-2024.4.28-cp312-cp312-macosx_10_9_universal2.whl", hash = "sha256:08a1749f04fee2811c7617fdd46d2e46d09106fa8f475c884b65c01326eb15c5"},
+    {file = "regex-2024.4.28-cp312-cp312-macosx_10_9_x86_64.whl", hash = "sha256:b8eb28995771c087a73338f695a08c9abfdf723d185e57b97f6175c5051ff1ae"},
+    {file = "regex-2024.4.28-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:dd7ef715ccb8040954d44cfeff17e6b8e9f79c8019daae2fd30a8806ef5435c0"},
+    {file = "regex-2024.4.28-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:fb0315a2b26fde4005a7c401707c5352df274460f2f85b209cf6024271373013"},
+    {file = "regex-2024.4.28-cp312-cp312-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:f2fc053228a6bd3a17a9b0a3f15c3ab3cf95727b00557e92e1cfe094b88cc662"},
+    {file = "regex-2024.4.28-cp312-cp312-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:7fe9739a686dc44733d52d6e4f7b9c77b285e49edf8570754b322bca6b85b4cc"},
+    {file = "regex-2024.4.28-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:a74fcf77d979364f9b69fcf8200849ca29a374973dc193a7317698aa37d8b01c"},
+    {file = "regex-2024.4.28-cp312-cp312-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:965fd0cf4694d76f6564896b422724ec7b959ef927a7cb187fc6b3f4e4f59833"},
+    {file = "regex-2024.4.28-cp312-cp312-musllinux_1_1_aarch64.whl", hash = "sha256:2fef0b38c34ae675fcbb1b5db760d40c3fc3612cfa186e9e50df5782cac02bcd"},
+    {file = "regex-2024.4.28-cp312-cp312-musllinux_1_1_i686.whl", hash = "sha256:bc365ce25f6c7c5ed70e4bc674f9137f52b7dd6a125037f9132a7be52b8a252f"},
+    {file = "regex-2024.4.28-cp312-cp312-musllinux_1_1_ppc64le.whl", hash = "sha256:ac69b394764bb857429b031d29d9604842bc4cbfd964d764b1af1868eeebc4f0"},
+    {file = "regex-2024.4.28-cp312-cp312-musllinux_1_1_s390x.whl", hash = "sha256:144a1fc54765f5c5c36d6d4b073299832aa1ec6a746a6452c3ee7b46b3d3b11d"},
+    {file = "regex-2024.4.28-cp312-cp312-musllinux_1_1_x86_64.whl", hash = "sha256:2630ca4e152c221072fd4a56d4622b5ada876f668ecd24d5ab62544ae6793ed6"},
+    {file = "regex-2024.4.28-cp312-cp312-win32.whl", hash = "sha256:7f3502f03b4da52bbe8ba962621daa846f38489cae5c4a7b5d738f15f6443d17"},
+    {file = "regex-2024.4.28-cp312-cp312-win_amd64.whl", hash = "sha256:0dd3f69098511e71880fb00f5815db9ed0ef62c05775395968299cb400aeab82"},
+    {file = "regex-2024.4.28.tar.gz", hash = "sha256:83ab366777ea45d58f72593adf35d36ca911ea8bd838483c1823b883a121b0e4"},
+]
+
+[[package]]
 name = "setuptools"
 version = "68.0.0"
 requires_python = ">=3.7"
@@ -986,6 +994,21 @@ files = [
 ]
 
 [[package]]
+name = "sonatoki"
+version = "0.1.3"
+requires_python = ">=3.8"
+summary = "ilo li moku e toki li pana e sona ni: ni li toki ala toki pona?"
+dependencies = [
+    "regex>=2023.12.25",
+    "typing-extensions>=4.11.0",
+    "unidecode>=1.3.6",
+]
+files = [
+    {file = "sonatoki-0.1.3-py3-none-any.whl", hash = "sha256:42c53de20afeef9083bfc656485df84f7d7291de5bce18c01fe819d8364561e4"},
+    {file = "sonatoki-0.1.3.tar.gz", hash = "sha256:73378689c2e3127b3a6424f77608828760b3d43bea9e86fa5a6659e11c24ad0a"},
+]
+
+[[package]]
 name = "sortedcontainers"
 version = "2.4.0"
 summary = "Sorted Containers -- Sorted List, Sorted Dict, Sorted Set"
@@ -1000,7 +1023,7 @@ version = "2.0.19"
 requires_python = ">=3.7"
 summary = "Database Abstraction Library"
 dependencies = [
-    "greenlet!=0.4.17; platform_machine == \"aarch64\" or (platform_machine == \"ppc64le\" or (platform_machine == \"x86_64\" or (platform_machine == \"amd64\" or (platform_machine == \"AMD64\" or (platform_machine == \"win32\" or platform_machine == \"WIN32\")))))",
+    "greenlet!=0.4.17; platform_machine == \"win32\" or platform_machine == \"WIN32\" or platform_machine == \"AMD64\" or platform_machine == \"amd64\" or platform_machine == \"x86_64\" or platform_machine == \"ppc64le\" or platform_machine == \"aarch64\"",
     "typing-extensions>=4.2.0",
 ]
 files = [
@@ -1093,12 +1116,12 @@ files = [
 
 [[package]]
 name = "typing-extensions"
-version = "4.7.1"
-requires_python = ">=3.7"
-summary = "Backported and Experimental Type Hints for Python 3.7+"
+version = "4.11.0"
+requires_python = ">=3.8"
+summary = "Backported and Experimental Type Hints for Python 3.8+"
 files = [
-    {file = "typing_extensions-4.7.1-py3-none-any.whl", hash = "sha256:440d5dd3af93b060174bf433bccd69b0babc3b15b1a8dca43789fd7f61514b36"},
-    {file = "typing_extensions-4.7.1.tar.gz", hash = "sha256:b75ddc264f0ba5615db7ba217daeb99701ad295353c45f9e95963337ceeeffb2"},
+    {file = "typing_extensions-4.11.0-py3-none-any.whl", hash = "sha256:c1f94d72897edaf4ce775bb7558d5b79d8126906a14ea5ed1635921406c0387a"},
+    {file = "typing_extensions-4.11.0.tar.gz", hash = "sha256:83f085bd5ca59c80295fc2a82ab5dac679cbe02b9f33f7d83af68e241bea51b0"},
 ]
 
 [[package]]
