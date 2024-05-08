@@ -20,11 +20,12 @@ CONFIG["preprocessors"].extend(
     [
         Backticks,
         Spoilers,
-        SingleQuotes,
-        DoubleQuotes,
-        ArrowQuote,
+        # SingleQuotes,
+        # DoubleQuotes,
+        # ArrowQuote,
     ]
 )
+CONFIG["passing_score"] = 0.9
 
 ILO = Ilo(**CONFIG)
 
