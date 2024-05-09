@@ -25,7 +25,7 @@ CONFIG["preprocessors"].extend(
         # ArrowQuote,
     ]
 )
-CONFIG["passing_score"] = 0.9
+CONFIG["passing_score"] = 0.8
 
 ILO = Ilo(**CONFIG)
 
