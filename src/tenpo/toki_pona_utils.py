@@ -7,6 +7,7 @@ from sonatoki.Configs import DiscordConfig
 from sonatoki.Preprocessors import (
     Spoilers,
     Backticks,
+    Reference,
     ArrowQuote,
     DoubleQuotes,
     SingleQuotes,
@@ -20,9 +21,10 @@ CONFIG["preprocessors"].extend(
     [
         Backticks,
         Spoilers,
+        Reference,
         # SingleQuotes,
         # DoubleQuotes,
-        # ArrowQuote,
+        ArrowQuote,
     ]
 )
 CONFIG["passing_score"] = 0.8
