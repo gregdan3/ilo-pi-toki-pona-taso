@@ -16,6 +16,7 @@ from tenpo.constants import NASIN_PI_MA_ILO, NANPA_PI_JAN_PALI
 from tenpo.log_utils import getLogger
 from tenpo.str_utils import (
     PALI_MAP,
+    BANNED_REACTS,
     CONTAINER_MAP,
     format_reacts,
     format_channel,
@@ -27,6 +28,7 @@ from tenpo.str_utils import (
     get_discord_reacts,
     format_reacts_rules,
     format_rules_exceptions,
+    format_reacts_management,
     format_removed_role_info,
 )
 from tenpo.croniter_utils import EventTimer, InvalidEventTimer
@@ -332,7 +334,7 @@ class CogRules(Cog):
     async def user_manage_reacts(self, ctx: ApplicationContext, sitelen: str = ""):
         if not sitelen:
             await DB.set_reacts(ctx.user.id, [])
-            await ctx.respond(
+            _ = await ctx.respond(
                 "sina pana ala e sitelen la mi weka e sitelen ale sina", ephemeral=True
             )
             return
@@ -340,21 +342,30 @@ class CogRules(Cog):
         emojis = [e["emoji"] for e in emoji.emoji_list(sitelen)]
         reacts = get_discord_reacts(sitelen)
         if len(emojis) + len(reacts) > 25:
-            await ctx.respond(
+            _ = await ctx.respond(
                 "sina pana e sitelen pi mute ike a. o lili e mute", ephemeral=True
             )
+            return
 
-        broken_reacts = []
+        banned_reacts: list[str] = []
+        for banned in BANNED_REACTS:
+            while banned in emojis:
+                emojis.remove(banned)
+                banned_reacts.append(banned)
+            while banned in reacts:
+                reacts.remove(banned)
+                banned_reacts.append(banned)
+
+        broken_reacts: list[str] = []
         for react in reacts:
             react_id = re.search(r"\d+", react)
             if not react_id:
                 broken_reacts.append(react)
                 continue
-            react_id = react_id.group()
-            react_id = int(react_id)
+            react_id = int(react_id.group())
 
-            react_from_bot = self.bot.get_emoji(react_id)
-            if not react_from_bot:
+            bot_can_use = self.bot.get_emoji(react_id)
+            if not bot_can_use:
                 broken_reacts.append(react)
 
         for react in broken_reacts:
@@ -364,22 +375,8 @@ class CogRules(Cog):
         if all_reacts:
             await DB.set_reacts(ctx.user.id, all_reacts)
 
-        resp = ""
-        if all_reacts:
-            formatted_reacts = format_reacts(all_reacts)
-            resp += (
-                "sina toki pona ala la mi pana e sitelen tan ni:\n%s" % formatted_reacts
-            )
-        if broken_reacts:
-            formatted_reacts = format_reacts(broken_reacts)
-            resp += (
-                "\n\nmi lon ala ma pi sitelen ni la mi ken ala pana e ona:\n%s"
-                % formatted_reacts
-            )
-        if not all_reacts:
-            resp += "\n\nmi jo ala e sitelen pona tan sina la sitelen sina li ante ala."
-
-        await ctx.respond(resp, ephemeral=True)
+        resp = format_reacts_management(all_reacts, broken_reacts, banned_reacts)
+        _ = await ctx.respond(resp, ephemeral=True)
 
 
 async def cmd_upsert_rule(

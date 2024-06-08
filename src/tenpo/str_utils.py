@@ -30,6 +30,15 @@ TIMING_MAP = {
     "wile": "mi lukin lon tenpo wile tan ilo `lawa_ma tenpo`",
 }
 
+BANNED_REACTS = [
+    "⭐",
+    "<:report_this_post_to_mods:761630970544783390>",
+    "<:report:988165468009406505>",
+    "<:report:1128327953768521829>",
+    "<:report_this_post_to_mods:987869324259754064>",
+    "<:report:1162798333002264586>",
+]
+
 
 def dt_to_int(t: datetime):
     return int(t.timestamp())
@@ -55,7 +64,7 @@ def format_timing_data(timing: str):
     return f"{timing} la {TIMING_MAP[timing]}."
 
 
-def get_discord_reacts(s: str):
+def get_discord_reacts(s: str) -> list[str]:
     return re.findall(EMOTES_RE, s)
 
 
@@ -156,3 +165,32 @@ def format_reacts_rules(reacts: List[str]):
     if not reacts:
         message += "\n" + "sina wile e sitelen sina la o kepeken ilo `/lawa sitelen`"
     return message
+
+
+def format_reacts_management(
+    all_reacts: list[str],
+    broken_reacts: list[str],
+    banned_reacts: list[str],
+) -> str:
+    resp = ""
+    if all_reacts:
+        formatted_reacts = format_reacts(all_reacts)
+        resp += (
+            "sina toki pona ala la mi pana e sitelen tan kulupu ni:\n%s"
+            % formatted_reacts
+        )
+    if broken_reacts:
+        formatted_reacts = format_reacts(broken_reacts)
+        resp += (
+            "\n\nmi lon ala ma pi sitelen ni la mi ken ala pana e ona:\n%s"
+            % formatted_reacts
+        )
+    if banned_reacts:
+        formatted_reacts = format_reacts(banned_reacts)
+        resp += (
+            "\n\nsina ken ala pana e sitelen ni la mi weka e ona: \n%s"
+            % formatted_reacts
+        )
+    if not all_reacts:
+        resp += "\n\nmi jo ala e sitelen pona tan sina la sitelen sina li ante ala."
+    return resp
