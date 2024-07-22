@@ -163,6 +163,9 @@ async def react_to_msg(message: Message):
     try:
         await message.add_reaction(react)
         return
+    except discord.errors.Forbidden:
+        await delete_msg(message)  # necessary fallback since user may have blocked bot
+        return
     except discord.errors.HTTPException as e:
         if e.code != UNKNOWN_EMOJI_ERR_CODE:
             LOG.error("Couldn't react due to unexpected exception!")
@@ -177,8 +180,15 @@ async def react_to_msg(message: Message):
 
 async def delete_msg(message: Message):
     LOG.debug("Deleting user message")
-    await message.delete(reason="o toki pona taso")
-    await send_delete_dm(message)
+    try:
+        await message.delete(reason="o toki pona taso")
+        await send_delete_dm(message)
+    except discord.errors.Forbidden:
+        LOG.error("Couldn't delete message; disallowed")
+    except discord.errors.HTTPException as e:
+        LOG.error("Couldn't react due to unexpected exception!")
+        LOG.error(f"Error code: {e.code}")
+        LOG.error(f"Error text: {e.text}")
 
 
 async def respond(message: Message):
