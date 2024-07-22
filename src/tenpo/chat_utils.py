@@ -20,6 +20,7 @@ async def send_delete_dm(message: Message):
         message.author,
         f"""sina toki pona ala la mi weka e toki sina ni:
 {codeblock_wrap(message.content)}
+{message.jump_url}
 sina wile ala e weka la o kepeken `/lawa nasin`""",
     )
 
