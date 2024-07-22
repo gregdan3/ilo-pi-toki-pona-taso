@@ -58,6 +58,7 @@ class CogRules(Cog):
         await cmd_list_rules(ctx, actor, ephemeral=True)
 
     @guild_rules.command(name="weka", description="o weka e lawa ale ma")
+    @commands.has_permissions(administrator=True)
     async def guild_delete_rules(self, ctx: ApplicationContext):
         actor = ctx.guild
         assert actor
