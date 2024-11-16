@@ -3,31 +3,42 @@ from copy import deepcopy
 
 # PDM
 from sonatoki.ilo import Ilo
-from sonatoki.Configs import DiscordConfig
+from sonatoki.Configs import PrefConfig
 from sonatoki.Preprocessors import (
+    URLs,
+    Emoji,
+    Emails,
     Spoilers,
     Backticks,
     Reference,
     ArrowQuote,
-    DoubleQuotes,
-    SingleQuotes,
+    MarkdownURLs,
     DiscordEmotes,
+    DiscordSpecial,
+    DiscordChannels,
+    DiscordMentions,
+    AngleBracketObject,
 )
 
 EMOTES_RE = DiscordEmotes.pattern.pattern
 
-CONFIG = deepcopy(DiscordConfig)
-CONFIG["preprocessors"].extend(
-    [
-        Backticks,
-        Spoilers,
-        Reference,
-        # SingleQuotes,
-        # DoubleQuotes,
-        ArrowQuote,
-    ]
-)
-CONFIG["passing_score"] = 0.8
+CONFIG = deepcopy(PrefConfig)
+CONFIG["preprocessors"] = [
+    # roughly ordered by permissivity
+    Backticks,
+    Spoilers,
+    # ArrowQuote,
+    # AngleBracketObject,
+    Reference,
+    MarkdownURLs,
+    DiscordEmotes,
+    DiscordMentions,
+    DiscordChannels,
+    DiscordSpecial,
+    URLs,
+    Emails,
+    Emoji,
+]
 
 ILO = Ilo(**CONFIG)
 
