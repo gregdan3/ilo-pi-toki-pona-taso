@@ -167,6 +167,33 @@ class Rules(Base):
     )
 
 
+# class Rules(Base):
+#     __tablename__ = "rules"
+#     # the entity who wrote the rule
+#     entity_id = Column(BigInteger, ForeignKey("entity.id"), nullable=False)
+#     # TODO: users, but not guilds, could put a rule with only themselves in it?
+#     # which would be equivalent to 'look at my messages always'
+#
+#     # rule domain down to max specificity
+#     guild_id = Column(BigInteger, nullable=True)
+#     category_id = Column(BigInteger, nullable=True)
+#     channel_id = Column(BigInteger, nullable=True)
+#     thread_id = Column(BigInteger, nullable=True)
+#
+#     # whether the rule is an exception (i.e. 'do not look') or not
+#     exception = Column(Boolean, nullable=False, default=False)
+#
+#     entity = relationship("entity", back_populates=__tablename__)
+#
+#     __table_args__ = PrimaryKeyConstraint(
+#         "entity_id",
+#         "guild_id",
+#         "category_id",
+#         "channel_id",
+#         "thread_id",
+#     )
+
+
 class TenpoDB:
     engine: AsyncEngine
     sgen: async_sessionmaker
