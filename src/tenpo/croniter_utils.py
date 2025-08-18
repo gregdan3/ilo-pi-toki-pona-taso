@@ -22,7 +22,7 @@ class InvalidEventTimer(Exception):
 
 class InvalidCron(InvalidEventTimer):
     def __init__(self, cron: str) -> None:
-        super().__init__("open tenpo li pakala: `%s`" % cron)
+        super().__init__("sona tenpo li pakala: `%s`" % cron)
 
 
 class InvalidTZ(InvalidEventTimer):
