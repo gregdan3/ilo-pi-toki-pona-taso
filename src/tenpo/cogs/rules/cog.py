@@ -216,20 +216,15 @@ class CogRules(Cog):
         suli_tenpo: str = "24h",
     ):
         ma = ctx.guild
-        assert ma  # nasa la ma li ken lawa e ma
+        assert ma
 
-        for t in (
-            ale := [
-                tenpo_lili,
-                tenpo_suli,
-                tenpo_suno_pi_tenpo_mun,
-                tenpo_mun,
-                tenpo_suno_pi_tenpo_suno_luka_tu,
-            ]
-        ):
-            if " " in t:  # TODO: o wawa e pona
-                await ctx.respond("ni li ken ala la mi pana ala: `%s`" % t)
-                return
+        ale = [
+            tenpo_lili,
+            tenpo_suli,
+            tenpo_suno_pi_tenpo_mun,
+            tenpo_mun,
+            tenpo_suno_pi_tenpo_suno_luka_tu,
+        ]
         cron = " ".join(ale)
 
         try:
