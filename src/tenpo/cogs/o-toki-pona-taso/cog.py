@@ -14,7 +14,6 @@ from discord.ext.commands import Cog
 from tenpo.__main__ import DB
 from tenpo.log_utils import getLogger
 from tenpo.chat_utils import send_delete_dm, send_react_error_dm
-from tenpo.phase_utils import is_major_phase
 from tenpo.toki_pona_utils import is_toki_pona
 
 LOG = getLogger()
@@ -34,50 +33,34 @@ class CogOTokiPonaTaso(Cog):
 
     @commands.Cog.listener("on_message")
     async def o_toki_pona_taso(self, message: Message):
-        if not await should_check(message):
-            LOG.debug("Ignoring message; preconditions failed")
-            return
-
-        if not (await should_react_user(message) or await should_react_guild(message)):
-            return
-
-        if is_toki_pona(message.content):
-            LOG.debug("Ignoring message; is toki pona")
-            return
-
-        await respond(message)
+        if await should_respond(message):
+            await respond(message)
 
     @commands.Cog.listener("on_message_edit")
     async def toki_li_ante_la(self, before: Message, after: Message):
-        message = after
-        if not await should_check(message):
-            LOG.debug("Ignoring edit; preconditions failed")
-            return
-        if not (await should_react_user(message) or await should_react_guild(message)):
-            return
-
-        # check if message already had a react
-        # if it had a react, we remove it
+        # TODO: switch to message cache in the future
+        # in case future responses no longer react
         react = await get_own_react(before)
-        before_ok = react is None
-        after_ok = is_toki_pona(after.content)
+        resp_before = react is not None
+        resp_after = await should_respond(after)
 
-        if before_ok == after_ok:
+        if resp_before == resp_after:
             return
-        if before_ok and not after_ok:
-            await respond(message)
+        if not resp_before and resp_after:
+            await respond(after)
             return
-        if not before_ok and after_ok:
+        if resp_before and not resp_after:
             assert self.bot.user  # asserts we are actually logged in...
-            await message.remove_reaction(react, self.bot.user)
+            await after.remove_reaction(react, self.bot.user)
 
 
 async def should_check(message: Message) -> bool:
     """
-    Determine if a message is in a location worth checking.
+    Determine if a message is worth checking.
     - The user must not be a bot (see TODO)
     - The message must be in a guild
     - The message must be in a channel
+    - The message must be from the last 1hr (see TODO)
     """
     if message.author.bot:
         # TODO: exclude bots, but not pluralkit? they share a per-server id from the webhook
@@ -93,10 +76,12 @@ async def should_check(message: Message) -> bool:
     # if not channel:
     #     return False
 
+    # TODO: if a message is from >1hr ago, we don't care anymore
+
     return True
 
 
-async def should_react_user(message: Message) -> bool:
+async def should_check_user(message: Message) -> bool:
     channel, guild = message.channel, message.guild
     if isinstance(channel, Thread):
         # TODO: configurable thread behavior?
@@ -123,7 +108,7 @@ async def should_react_user(message: Message) -> bool:
     return True
 
 
-async def should_react_guild(message: Message) -> bool:
+async def should_check_guild(message: Message) -> bool:
     channel, guild = message.channel, message.guild
     if isinstance(channel, Thread):
         # TODO: configurable thread behavior?
@@ -143,12 +128,34 @@ async def should_react_guild(message: Message) -> bool:
             return False
 
     if not await DB.in_checked_channel(
-        guild.id, channel.id, channel.category_id, guild.id
+        guild.id,
+        channel.id,
+        channel.category_id,
+        guild.id,
     ):
         LOG.debug("Ignoring guild message; not in configured channel")
         return False
 
     return True
+
+
+async def should_respond(message: Message) -> bool:
+    if not await should_check(message):
+        LOG.debug("Ignoring message; preconditions failed")
+        return False
+
+    if await should_check_guild(message):
+        assert message.guild
+        spoilers = await DB.get_spoilers(message.guild.id)
+        if not is_toki_pona(message.content, spoilers=spoilers):
+            return True
+
+    if await should_check_user(message):
+        spoilers = await DB.get_spoilers(message.author.id)
+        if not is_toki_pona(message.content, spoilers=spoilers):
+            return True
+
+    return False
 
 
 async def get_react(eid: int):
