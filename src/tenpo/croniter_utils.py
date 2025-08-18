@@ -39,7 +39,7 @@ def parse_delta(delta_str: str) -> timedelta:
     if not delta_str:
         raise InvalidDelta(delta_str)
     delta = timeparse(delta_str, granularity="minutes")
-    if not isinstance(delta, int):
+    if not isinstance(delta, int) or not delta > 0:
         raise InvalidDelta(delta_str)
     delta = timedelta(seconds=delta)
     return delta
