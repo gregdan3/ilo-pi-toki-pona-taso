@@ -114,6 +114,7 @@ class ConfigKey(enum.Enum):
 
     # both
     DISABLED = "disabled"
+    SPOILERS = "spoilers"
 
 
 class ConfigKeyTypes(enum.Enum):
@@ -127,6 +128,7 @@ class ConfigKeyTypes(enum.Enum):
     LENGTH = str  # TODO
     TIMEZONE = str
     TIMER = str
+    SPOILERS = bool
 
     DISABLED = bool
 
@@ -254,6 +256,12 @@ class TenpoDB:
             List[str],
             await self.__get_config_item(eid, ConfigKey.REACTS, DEFAULT_REACTS),
         )
+
+    async def set_spoilers(self, eid: int, spoilers: bool):
+        await self.__set_config_item(eid, ConfigKey.SPOILERS, spoilers)
+
+    async def get_spoilers(self, eid: int) -> bool:
+        return cast(bool, await self.__get_config_item(eid, ConfigKey.SPOILERS, True))
 
     async def set_disabled(self, eid: int, disabled: bool):
         await self.__set_config_item(eid, ConfigKey.DISABLED, disabled)
