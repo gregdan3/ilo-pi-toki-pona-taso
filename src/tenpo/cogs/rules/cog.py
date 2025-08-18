@@ -36,6 +36,7 @@ from tenpo.croniter_utils import EventTimer, InvalidEventTimer
 LOG = getLogger()
 
 LukinOptions = Literal["lukin", "ala"]
+SpoilerOptions = Literal["ken", "ala"]
 
 
 # TODO: generate these functions
@@ -94,6 +95,15 @@ class CogRules(Cog):
             await ctx.respond("kama la mi tenpo e tomo __<#%s>__" % tomo.id)
             return
         await ctx.respond("mi kama lawa ala e tomo __<#%s>__" % tomo.id)
+
+    @guild_rules.command(name="len", description="jan ma o ken ala ken len e toki?")
+    @commands.has_permissions(administrator=True)
+    @option(name="len", choices=["ken", "ala"])
+    async def guild_set_spoilers(self, ctx: ApplicationContext, len: str):
+        actor = ctx.guild
+        assert actor
+        len = cast(SpoilerOptions, len)  # pycord sucks
+        return await cmd_set_spoilers(ctx, actor, len, ephemeral=True)
 
     @guild_rules.command(
         name="lukin", description="ma ni la mi o lukin ala lukin e toki?"
@@ -265,6 +275,12 @@ class CogRules(Cog):
     async def user_delete_rules(self, ctx: ApplicationContext):
         await cmd_delete_rules(ctx, ctx.user, ephemeral=True)
 
+    @user_rules.command(name="len", description="sina o ken ala ken len e toki?")
+    @option(name="len", choices=["ken", "ala"])
+    async def user_set_spoilers(self, ctx: ApplicationContext, len: str):
+        len = cast(SpoilerOptions, len)  # pycord sucks
+        return await cmd_set_spoilers(ctx, ctx.user, len, ephemeral=True)
+
     @user_rules.command(name="lukin", description="mi o lukin ala lukin e toki sina?")
     @option(name="lukin", choices=["lukin", "ala"])
     async def user_set_disabled(self, ctx: ApplicationContext, lukin: str):
@@ -403,6 +419,32 @@ async def cmd_upsert_rule(
     action = await DB.upsert_rule(poki.id, ctype, jan_anu_ma.id, lukin_ala)
     response = await build_rule_resp(poki, ctype, action, lukin_ala)
     await ctx.respond(response, ephemeral=ephemeral)
+
+
+async def cmd_set_spoilers(
+    ctx: ApplicationContext,
+    actor: DiscordActor,
+    _allowed: SpoilerOptions,
+    ephemeral: bool,
+):
+    allowed = False
+    if _allowed == "ken":
+        allowed = True
+
+    prev_allowed = await DB.get_spoilers(actor.id)
+
+    pverb = "kama"
+    if prev_allowed == allowed:
+        pverb = "awen"
+
+    verb = "ken"
+    if not allowed:
+        verb = "ken ala"
+    resp = f"len li {pverb} {verb}"
+
+    assert isinstance(allowed, bool)
+    await DB.set_spoilers(actor.id, allowed)
+    await ctx.respond(resp, ephemeral=ephemeral)
 
 
 async def cmd_set_disabled(
