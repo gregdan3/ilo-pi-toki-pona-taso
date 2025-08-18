@@ -142,7 +142,7 @@ class CogRules(Cog):
         description="mun la o open lon suno mun lon pimeja mun. wile la o kepeken tenpo wile.",
         choices=["ale", "ala", "mun", "wile"],
     )
-    async def guild_set_event_timing(
+    async def guild_set_event_timing_method(
         self,
         ctx: ApplicationContext,
         nasin: str,
@@ -162,29 +162,29 @@ class CogRules(Cog):
 
     @guild_rules.command(
         name="tenpo",
-        description="ilo o lukin lon tenpo seme. o kepeken nasin pi ilo Cron",
+        description="nasin Cron la ilo o lukin lon tenpo seme? (https://crontab.guru/)",
     )
     @commands.has_permissions(administrator=True)
     @option(
         name="tenpo_lili",
-        description="o open lon tenpo lili nanpa seme (pana ala la 0)",
+        description="tenpo lili nanpa seme (pana ala la 0)",
         choices=[str(i) for i in range(0, 60, 30)],
     )
     @option(
         name="tenpo_suli",
-        description="o open lon tenpo suli nanpa seme (0-23. ken: 0,12 */6. pana ala la 0.)",
+        description="tenpo suli nanpa seme (0-23. ken: 0,12 */6. pana ala la 0.)",
     )
     @option(
         name="tenpo_suno_pi_tenpo_mun",
-        description="tenpo mun la o open lon tenpo suno seme (1-31. ken: */7 2,9,13,30. pana ala la *)",
+        description="tenpo mun la tenpo suno seme (1-31. ken: */7 2,9,13,30. pana ala la *)",
     )
     @option(
-        name="tenpo_suno_pi_tenpo_suno_luka_tu",
-        description="tenpo suno luka tu la o open lon tenpo suno seme (0-6. mute li ken. pana ala la 6)",
+        name="tenpo_suno_pi_tenpo_esun",
+        description="tenpo esun la o open lon tenpo suno seme (0-6. ken: */2 2,6. pana ala la 6)",
     )
     @option(
         name="tenpo_mun",
-        description="o open lon tenpo mun nanpa seme (1-12. mute li ken. ale li ken tan *. pana ala la *)",
+        description="tenpo mun nanpa seme (1-12. ken: * */3 1,4,9,11. pana ala la *)",
     )
     @option(
         name="nasin_tenpo",
