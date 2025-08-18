@@ -11,24 +11,20 @@ from sonatoki.Preprocessors import (
     Spoilers,
     Backticks,
     Reference,
-    ArrowQuote,
     MarkdownURLs,
     DiscordEmotes,
     DiscordSpecial,
     DiscordChannels,
     DiscordMentions,
-    AngleBracketObject,
 )
 
 EMOTES_RE = DiscordEmotes.pattern.pattern
 
-CONFIG = deepcopy(PrefConfig)
-CONFIG["preprocessors"] = [
-    # roughly ordered by permissivity
+CONFIG_SPOILERS = deepcopy(PrefConfig)
+CONFIG_SPOILERS["preprocessors"] = [
+    # ordered by discord's parse order
     Backticks,
     Spoilers,
-    # ArrowQuote,
-    # AngleBracketObject,
     Reference,
     MarkdownURLs,
     DiscordEmotes,
@@ -39,9 +35,25 @@ CONFIG["preprocessors"] = [
     Emails,
     Emoji,
 ]
+ILO_SPOILERS = Ilo(**CONFIG_SPOILERS)
 
-ILO = Ilo(**CONFIG)
+CONFIG_NO_SPOILERS = deepcopy(PrefConfig)
+CONFIG_NO_SPOILERS["preprocessors"] = [
+    Backticks,
+    Reference,
+    MarkdownURLs,
+    DiscordEmotes,
+    DiscordMentions,
+    DiscordChannels,
+    DiscordSpecial,
+    URLs,
+    Emails,
+    Emoji,
+]
+ILO_NO_SPOILERS = Ilo(**CONFIG_NO_SPOILERS)
 
 
-def is_toki_pona(s: str):
-    return ILO.is_toki_pona(s)
+def is_toki_pona(s: str, spoilers: bool = True):
+    if spoilers:
+        return ILO_SPOILERS.is_toki_pona(s)
+    return ILO_NO_SPOILERS.is_toki_pona(s)
