@@ -30,6 +30,7 @@ def user_has_role(user: Member, role: int) -> bool:
 class CogOTokiPonaTaso(Cog):
     def __init__(self, bot: Bot):
         self.bot: Bot = bot
+        super().__init__()
 
     @commands.Cog.listener("on_message")
     async def o_toki_pona_taso(self, message: Message):
