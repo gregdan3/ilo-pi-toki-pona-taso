@@ -572,49 +572,65 @@ async def cmd_delete_rules(
 
 
 async def cmd_lawa_help(ctx: ApplicationContext, actor: DiscordActor, ephemeral: bool):
-    # TODO: order is controlled by guild/user distinction which is bad.
-    guild = ctx.guild
-    assert guild
-    user = ctx.user
-    assert user
-
     is_guild = isinstance(actor, Guild)
 
     prefix = "/lawa"
+    ref = "sina"
     if is_guild:
         prefix = "/lawa_ma"
+        ref = "ma"
 
-    sona = "mi __ilo pi toki pona taso__. sina toki pona ala la mi pona e ni. o lukin e ken mi:\n"
-    sona += f"- `{prefix} sona`: mi pana e toki ni.\n"
-    sona += f"- `{prefix} ale`: mi pana e lawa ale sina.\n"
-    sona += f"- `{prefix} lukin [lukin|ala]`: mi lukin ala lukin e toki sina.\n"
+    # NOTE: double check the placement of substitution strings!
+    sona = f"""
+## sona ilo
+mi __ilo pi toki pona taso__ li pona e toki {ref}! o lukin e ken mi:
+### sona
+- `{prefix} sona`: mi pana e toki ni.
+- `{prefix} ale`: mi pana e sona ni: ilo li seme e sina lon seme?
+### ken
+- `{prefix} lukin [lukin|ala]`: mi lukin ala lukin e toki {ref}.
+- `{prefix} len [ken|ala]`: toki {ref} li ken ala ken kepeken nasin len ||ni||.%(ken)s
+### lawa tomo
+- `{prefix} [tomo|ma] (ala)`: mi o lukin e toki {ref} lon seme? 
+  - toki {ref} li pona ala lon tomo la mi pona e ni.
+  - sina pana sin e tomo la mi kama lukin ala e ona.
+  - `ala` la mi lukin ala e ijo. ni li ken tomo lon insa pi kulupu tomo.
+  - sina wile lawa e ale la o kepeken `/lawa ma`.%(lawa_tenpo)s
 
-    sona += f"- `{prefix} [tomo|ma] (ala)`: mi lukin e ijo. sina pana sin e ijo la mi lukin ala.\n"
-    sona += f"  - sina toki pona ala lon ijo la mi pona e ni.\n"
-    sona += f"  - `ala` la mi lukin ala e ijo. ijo ni li ken lon insa pi ijo ante.\n"
-    sona += f"  - sina wile lawa e ale la o kepeken `/lawa ma`.\n"
+-# ilo li tan mun Kekan San <@{NANPA_PI_JAN_PALI}>. o kama lon ma ilo: <{NASIN_PI_MA_ILO}>. mu.
+"""
 
-    if not is_guild:
-        sona += f"- `{prefix} open [toki]`: toki sina li ni lon open la mi lukin ala.\n"
-        sona += f"  - sina pana sin e toki la mi weka e ona.\n"
-        sona += f"  - open tu wan li ken. mi pana ala e open sin tan mute. o weka e toki lon.\n"
+    ken_jan = f"""
+- `{prefix} nasin [sitelen|weka]`: toki {ref} li pona ala la mi seme e toki?
+- `{prefix} sitelen [sitelen]`: toki {ref} li pona ala la mi pana e sitelen seme?
+  - sitelen ma <:tokipona:448287759266742272> en sitelen ilo 💥 li ken.
+  - sina pana e sitelen sama lon tenpo mute la sina suli e ken sitelen.
+  - sina pana e ala la mi weka e sitelen ale sina.
+- `{prefix} open [toki]`: open toki li ni la mi lukin ala.
+  - open tu wan li ken. sina wile e ona sin la o weka e ona lon.
+  - sina pana sin e open la mi lukin e ona lon tenpo kama."""
 
-        sona += f"- `{prefix} nasin [sitelen|weka]`: sina toki pona ala la mi seme e toki sina.\n"
-        sona += f"- `{prefix} sitelen [sitelen]`: sina toki pona ala la mi pana e sitelen ken seme.\n"
+    ken_ma = f"""
+- `{prefix} poki [poki]`: mi lukin taso e jan pi poki ni. sina pana sin la mi lukin e jan ale."""
+
+    lawa_tenpo = f"""
+### lawa tenpo
+- `{prefix} nasin_tenpo [ale|ala|mun|wile]`: o lukin e toki ma lon nasin tenpo.
+  - {format_timing_data('ale')}
+  - {format_timing_data('ala')}
+  - {format_timing_data('mun')}
+  - {format_timing_data('wile')}
+- `{prefix} tenpo [ijo mute]`: nasin Cron la mi lukin e toki {ref} lon tenpo. <https://crontab.guru/>
+  - sina pana ala e `nasin_tenpo` la mi kepeken nasin tenpo `UTC`.
+  - sina pana ala e `suli_tenpo` la mi kepeken suli tenpo `24h`"""
+
+    subs = {}
     if is_guild:
-        sona += f"- `{prefix} poki [poki]`: mi lukin taso e jan pi poki ni. sina pana sin la mi lukin e jan ale.\n"
-        sona += f"- `{prefix} tenpo [ijo mute]`: nasin `cron` la mi lukin e toki lon tenpo. o lukin: <https://crontab.guru/>\n"
-        sona += f"  - sina pana ala e `nasin_tenpo` la mi kepeken nasin `UTC`.\n"
-        sona += f"  - sina pana ala e `suli_tenpo` la mi kepeken `24h`\n"
-        sona += f"  - tenpo suno en ante li ken `*/7`. ni la sina ken kipisi e nanpa tenpo la mi lukin.\n"
-        sona += f"  - tenpo suno en ante li ken `2,6,11`. ni la nanpa tenpo li sama ni la mi lukin.\n"
+        subs["ken"] = ken_ma
+        subs["lawa_tenpo"] = lawa_tenpo
+    else:
+        subs["ken"] = ken_jan
+        subs["lawa_tenpo"] = ""
+    sona = sona % subs
 
-        sona += f"- `{prefix} nasin_tenpo [ale|ala|mun|wile]`: o lukin e toki ma lon nasin tenpo.\n"
-        sona += f"  - {format_timing_data('ale')}\n"
-        sona += f"  - {format_timing_data('ala')}\n"
-        sona += f"  - {format_timing_data('mun')}\n"
-        sona += f"  - {format_timing_data('wile')}\n"
-
-    sona += f"\n"
-    sona += f"ilo li tan jan Kekan San <@{NANPA_PI_JAN_PALI}>. o kama lon ma ilo: <{NASIN_PI_MA_ILO}>. mu."
     await ctx.respond(sona, ephemeral=ephemeral)
