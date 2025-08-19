@@ -81,7 +81,7 @@ class EventTimer:
         self.__cron.set_current(start_time=now)
         return now
 
-    def now_in_range(self):
+    def is_event_now(self):
         now = self.__normalize_to_now()
         last = self.__cron.get_prev(datetime)
         # LOG.debug("%s %s %s", now, last, last + self.__delta)

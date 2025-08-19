@@ -517,7 +517,7 @@ class TenpoDB:
             return is_major_phase()
         elif timing_method == "wile":
             timer = await self.get_event_timer(eid)
-            return timer.now_in_range()
+            return timer.is_event_now()
         return False
 
     async def startswith_ignorable(self, eid: int, message: str) -> bool:
