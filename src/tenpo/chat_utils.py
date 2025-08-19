@@ -13,6 +13,15 @@ from tenpo.str_utils import chunk_response, codeblock_wrap
 LOG = getLogger()
 
 
+def create_message_link(message: Message) -> str:
+    guild_id = "@me"
+    if message.guild:
+        guild_id = message.guild.id
+    channel_id = message.channel.id
+    message_id = message.id
+    return f"https://discord.com/channels/{guild_id}/{channel_id}/{message_id}"
+
+
 async def send_dm_to_user(user: User | Member, message: str):
     if not (dm := user.dm_channel):
         dm = await user.create_dm()
@@ -31,17 +40,18 @@ async def send_delete_dm(message: Message):
     await send_dm_to_user(
         message.author,
         f"""sina toki pona ala la mi weka e toki sina ni:
+{create_message_link(message)}
 {codeblock_wrap(message.content)}
 {message.jump_url}
 sina wile ala e weka la o kepeken `/lawa nasin`""",
     )
 
 
-# TODO: link message
 async def send_react_error_dm(message: Message, react: str):
     await send_dm_to_user(
         message.author,
         f"""mi alasa sitelen e toki sina ni:
+{create_message_link(message)}
 {codeblock_wrap(message.content)}
 mi alasa kepeken sitelen ni, taso mi ken ala:
 {codeblock_wrap(react)}""",
