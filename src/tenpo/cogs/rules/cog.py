@@ -201,6 +201,7 @@ class CogRules(Cog):
         description="tenpo o tan ma seme? (ni li ken UTC li ken CST li ken ante. pana ala la UTC)",
     )
     @option(
+        # TODO: make optional. fetch current if missing
         name="suli_tenpo",
         description="tenpo o awen lon tenpo pi suli seme? (ken: 24h, 90m, 3d. pana ala la 24h)",
     )
