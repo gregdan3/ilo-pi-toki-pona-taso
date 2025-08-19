@@ -1,4 +1,3 @@
-# TODO: entire module is a bit mixed between "user facing" format and "internal" format. fix it.
 # STL
 import re
 from typing import List, Tuple
@@ -25,9 +24,9 @@ CHANNEL_FMT = "<#%s>"
 
 TIMING_MAP = {
     "ale": "mi lukin lon tenpo ale",
-    "ala": "mi lukin ala",
+    "ala": "mi lukin ala e toki",
     "mun": "mi lukin lon ni: mun suli li pimeja ale li suno ale",
-    "wile": "mi lukin lon tenpo wile tan ilo `lawa_ma tenpo`",
+    "wile": "mi lukin lon tenpo wile tan ilo `/lawa_ma tenpo`",
 }
 
 BANNED_REACTS = [
@@ -40,18 +39,18 @@ BANNED_REACTS = [
 ]
 
 
-def dt_to_int(t: datetime):
+def datetime_to_int(t: datetime):
     return int(t.timestamp())
 
 
-def dt_to_discord_dt(t: datetime, fmt: str = "F") -> str:
-    return TIME_FMT % (dt_to_int(t), fmt)
+def discord_fmt_datetime(t: datetime, fmt: str = "F") -> str:
+    return TIME_FMT % (datetime_to_int(t), fmt)
 
 
 def format_date_ranges(ranges: List[Tuple[datetime, datetime]]) -> str:
     resp = ""
     for start, end in ranges:
-        resp += dt_to_discord_dt(start) + " " + dt_to_discord_dt(end) + "\n"
+        resp += discord_fmt_datetime(start) + " " + discord_fmt_datetime(end) + "\n"
     return resp
 
 
@@ -194,3 +193,13 @@ def format_reacts_management(
     if not all_reacts:
         resp += "\n\nmi jo ala e sitelen pona tan sina la sitelen sina li ante ala."
     return resp
+
+
+def prep_msg_for_resend(content: str, author: int) -> str:
+    # blockquote their message
+    content = re.sub("^", "> ", content, flags=re.MULTILINE)
+    # escape spoilers so outer spoiler works
+    content = content.replace("||", r"\|\|")
+    content = f"""<@{author}> li toki e ni kepeken ala toki pona: ||
+{content} ||"""
+    return content

@@ -342,7 +342,7 @@ class CogRules(Cog):
     @user_rules.command(
         name="nasin", description="sina toki pona ala la mi o seme e toki?"
     )
-    @option(name="nasin", choices=["sitelen", "weka"])
+    @option(name="nasin", choices=["sitelen", "weka", "len", "sitelen lili"])
     async def user_set_response(self, ctx: ApplicationContext, nasin: str):
         await DB.set_response(ctx.user.id, nasin)
         await ctx.respond(

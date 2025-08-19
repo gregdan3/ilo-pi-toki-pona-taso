@@ -125,7 +125,7 @@ class ConfigKey(enum.Enum):
 class ConfigKeyTypes(enum.Enum):
     REACTS = List[str]
     OPENS = List[str]
-    RESPONSE = Literal["sitelen", "weka"]
+    RESPONSE = Literal["sitelen", "weka", "len", "sitelen lili"]
 
     ROLE = int  # role id
     CALENDAR = int  # channel id

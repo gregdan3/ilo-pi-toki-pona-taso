@@ -1,10 +1,11 @@
 # STL
+import re
 import random
 from typing import Optional, cast
 
 # PDM
 import discord
-from discord import Bot, Member, Thread
+from discord import Bot, Member, Thread, AllowedMentions
 from discord.ext import commands
 from discord.message import Message
 from discord.reaction import Reaction
@@ -13,12 +14,16 @@ from discord.ext.commands import Cog
 # LOCAL
 from tenpo.__main__ import DB
 from tenpo.log_utils import getLogger
+from tenpo.str_utils import prep_msg_for_resend
 from tenpo.chat_utils import send_delete_dm, send_react_error_dm
 from tenpo.toki_pona_utils import is_toki_pona
 
 LOG = getLogger()
 
 UNKNOWN_EMOJI_ERR_CODE = 10014
+RESEND_MENTIONS = AllowedMentions(
+    everyone=False, users=False, roles=False, replied_user=False
+)
 
 
 def user_has_role(user: Member, role: int) -> bool:
@@ -164,7 +169,7 @@ async def get_react(eid: int):
     return random.choice(reacts)
 
 
-async def react_to_msg(message: Message):
+async def react_message(message: Message):
     uid = message.author.id
     react = await get_react(uid)
     LOG.debug("Reacting %s to user message" % react)
@@ -172,7 +177,9 @@ async def react_to_msg(message: Message):
         await message.add_reaction(react)
         return
     except discord.errors.Forbidden:
-        await delete_msg(message)  # necessary fallback since user may have blocked bot
+        LOG.warning("Couldn't react to user message; disallowed. Deleting instead!")
+        await resend_message(message)
+        # fallback since user may have blocked bot
         return
     except discord.errors.HTTPException as e:
         if e.code != UNKNOWN_EMOJI_ERR_CODE:
@@ -186,15 +193,33 @@ async def react_to_msg(message: Message):
     await send_react_error_dm(message, react)
 
 
-async def delete_msg(message: Message):
+async def delete_message(message: Message, dm: bool = True):
     LOG.debug("Deleting user message")
     try:
         await message.delete(reason="o toki pona taso")
-        await send_delete_dm(message)
+        if dm:
+            await send_delete_dm(message)
     except discord.errors.Forbidden:
         LOG.error("Couldn't delete message; disallowed")
     except discord.errors.HTTPException as e:
-        LOG.error("Couldn't react due to unexpected exception!")
+        LOG.error("Couldn't delete message due to unexpected exception!")
+        LOG.error(f"Error code: {e.code}")
+        LOG.error(f"Error text: {e.text}")
+
+
+async def resend_message(message: Message):
+    reply = prep_msg_for_resend(message.content, message.author.id)
+
+    # we will resend, so no DM needed
+    await delete_message(message, dm=False)
+    try:
+        await message.channel.send(
+            reply, suppress=True, allowed_mentions=RESEND_MENTIONS
+        )
+    except discord.errors.Forbidden:
+        LOG.error("Couldn't re-send message; disallowed")
+    except discord.errors.HTTPException as e:
+        LOG.error("Couldn't re-send message due to unexpected exception!")
         LOG.error(f"Error code: {e.code}")
         LOG.error(f"Error text: {e.text}")
 
@@ -212,6 +237,8 @@ async def get_own_react(message: Message) -> Optional[Reaction]:
 
 
 RESPONSE_MAP = {
-    "sitelen": react_to_msg,
-    "weka": delete_msg,
+    "sitelen": react_message,
+    "weka": delete_message,
+    "len": resend_message,
+    "sitelen lili": react_message,  # TODO: version of this that is cache-aware
 }
