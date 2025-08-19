@@ -59,7 +59,7 @@ class CogRules(Cog):
         await cmd_list_rules(ctx, actor, ephemeral=True)
 
     @guild_rules.command(name="weka", description="o weka e lawa ale ma")
-    @commands.has_permissions(administrator=True)
+    @commands.has_guild_permissions(manage_channels=True)
     async def guild_delete_rules(self, ctx: ApplicationContext):
         actor = ctx.guild
         assert actor
@@ -70,7 +70,7 @@ class CogRules(Cog):
         name="poki",
         description="mi o lukin e jan pi poki ni taso. pana sin la mi lukin e ale.",
     )
-    @commands.has_permissions(administrator=True)
+    @commands.has_guild_permissions(manage_channels=True)
     async def guild_toggle_role(self, ctx: ApplicationContext, poki: Role):
         actor = ctx.guild
         assert actor
@@ -83,7 +83,7 @@ class CogRules(Cog):
 
     @guild_rules.command(name="tomo_tenpo", description="tomo seme o pana e sona tenpo")
     @option(name="tomo", description="tomo seme o mun tenpo")
-    @commands.has_permissions(administrator=True)
+    @commands.has_guild_permissions(manage_channels=True)
     async def guild_toggle_calendar(
         self, ctx: ApplicationContext, tomo: MessageableGuildChannel
     ):
@@ -96,8 +96,10 @@ class CogRules(Cog):
             return
         await ctx.respond("mi kama lawa ala e tomo __<#%s>__" % tomo.id)
 
-    @guild_rules.command(name="len", description="jan ma o ken ala ken len e toki?")
-    @commands.has_permissions(administrator=True)
+    @guild_rules.command(
+        name="len", description="ma ni la jan o ken ala ken len e toki?"
+    )
+    @commands.has_guild_permissions(manage_channels=True)
     @option(name="len", choices=["ken", "ala"])
     async def guild_set_spoilers(self, ctx: ApplicationContext, len: str):
         actor = ctx.guild
@@ -108,7 +110,7 @@ class CogRules(Cog):
     @guild_rules.command(
         name="lukin", description="ma ni la mi o lukin ala lukin e toki?"
     )
-    @commands.has_permissions(administrator=True)
+    @commands.has_guild_permissions(manage_channels=True)
     @option(name="lukin", choices=["lukin", "ala"])
     async def guild_set_disabled(self, ctx: ApplicationContext, lukin: str):
         actor = ctx.guild
@@ -117,15 +119,15 @@ class CogRules(Cog):
         return await cmd_set_disabled(ctx, actor, lukin, ephemeral=False)
 
     @guild_rules.command(
-        name="tomo", description="tomo pi ma ni la ale o toki ala toki pona?"
+        name="tomo", description="tomo seme la ale o toki ala toki pona?"
     )
     @option(name="tomo", description="tomo seme, kulupu seme")
     @option(
         name="lukin_ala",
-        description="tomo la ilo li lukin ala. ni la ale li ken toki pona ala",
+        description="tomo li lon kulupu pi lukin ilo la ilo li ken lukin ala e ona.",
     )
-    @commands.has_permissions(administrator=True)
-    async def guild_toggle_channel(
+    @commands.has_guild_permissions(manage_channels=True)
+    async def guild_set_channel_rule(
         self,
         ctx: ApplicationContext,
         tomo: MessageableGuildChannel | CategoryChannel,
@@ -136,8 +138,8 @@ class CogRules(Cog):
         await cmd_upsert_rule(ctx, actor, tomo, lukin_ala, ephemeral=False)
 
     @guild_rules.command(name="ma", description="ma ni la ale o toki ala toki pona?")
-    @commands.has_permissions(administrator=True)
-    async def guild_toggle_guild(self, ctx: ApplicationContext):
+    @commands.has_guild_permissions(manage_channels=True)
+    async def guild_set_guild_rule(self, ctx: ApplicationContext):
         ma = ctx.guild
         assert ma  # nasa la ma li ken lawa e ma
         await cmd_upsert_rule(ctx, ma, ma, ephemeral=False)
@@ -146,7 +148,7 @@ class CogRules(Cog):
         name="nasin_tenpo",
         description="ilo o lukin kepeken nasin tenpo seme",
     )
-    @commands.has_permissions(administrator=True)
+    @commands.has_guild_permissions(manage_channels=True)
     @option(
         name="nasin",
         description="mun la o open lon suno mun lon pimeja mun. wile la o kepeken tenpo wile.",
@@ -174,7 +176,7 @@ class CogRules(Cog):
         name="tenpo",
         description="nasin Cron la ilo o lukin lon tenpo seme? (https://crontab.guru/)",
     )
-    @commands.has_permissions(administrator=True)
+    @commands.has_guild_permissions(manage_channels=True)
     @option(
         name="tenpo_lili",
         description="tenpo lili nanpa seme (pana ala la 0)",
@@ -205,7 +207,7 @@ class CogRules(Cog):
         name="suli_tenpo",
         description="tenpo o awen lon tenpo pi suli seme? (ken: 24h, 90m, 3d. pana ala la 24h)",
     )
-    async def guild_set_event_time(
+    async def guild_set_event_time_full(
         self,
         ctx: ApplicationContext,
         tenpo_lili: str = "0",
@@ -232,14 +234,14 @@ class CogRules(Cog):
             timer = EventTimer(cron, nasin_tenpo, suli_tenpo)
         except InvalidEventTimer as e:
             await ctx.respond(
-                "%s\n\no lukin e ale: \n`%s` \n`%s` \n`%s`"
+                "%s\no lukin e ale: \n`%s` \n`%s` \n`%s`\n\nsina wile e sona pi ilo Cron la o lukin e ni: <https://crontab.guru/>"
                 % (e, cron, nasin_tenpo, suli_tenpo)
             )
             return
 
         prospective_dates = [t for t in timer.get_ranges()]
         formatted = format_date_ranges(prospective_dates)
-        if prospective_dates[0][1] > prospective_dates[1][0]:  # TODO
+        if prospective_dates[0][1] > prospective_dates[1][0]:  # TODO: this sucks
             resp = "pakala li ken la mi pana ala! pini tenpo li lon insa pi open tenpo. o lukin: \n"
             resp += formatted
             await ctx.respond(resp)
