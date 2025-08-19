@@ -1,5 +1,5 @@
 # STL
-from typing import Tuple, Union, Generator
+from typing import Tuple, Union, Generator, cast
 from datetime import datetime, timedelta
 
 # PDM
@@ -81,22 +81,40 @@ class EventTimer:
         self.__cron.set_current(start_time=now)
         return now
 
-    def is_event_now(self):
-        now = self.__normalize_to_now()
-        last = self.__cron.get_prev(datetime)
-        # LOG.debug("%s %s %s", now, last, last + self.__delta)
+    def get_prev(self, ref: datetime | None = None) -> datetime:
+        if not ref:
+            ref = self.__normalize_to_now()
+        return self.__cron.get_prev(datetime, ref)
 
-        return last <= now < (last + self.__delta)
+    def get_next(self, ref: datetime | None = None) -> datetime:
+        if not ref:
+            ref = self.__normalize_to_now()
+        # it incorrectly claims to return a float...
+        return cast(datetime, cast(object, self.__cron.get_next(datetime, ref)))
 
-    def get_starts(self, n: int = 3) -> Generator[datetime, None, None]:
-        self.__normalize_to_now()
-        for _ in range(n):
-            yield self.__cron.get_next(datetime)
+    def get_prev_range(self, ref: datetime | None = None) -> tuple[datetime, datetime]:
+        start = self.get_prev(ref)
+        return start, start + self.__delta
 
-    def get_ranges(
-        self, n: int = 3
+    def get_next_range(self, ref: datetime | None = None) -> tuple[datetime, datetime]:
+        start = self.get_next(ref)
+        return start, start + self.__delta
+
+    def get_events_from(
+        self,
+        n: int = 3,
+        ref: datetime | None = None,
     ) -> Generator[Tuple[datetime, datetime], None, None]:
-        self.__normalize_to_now()
+        if not ref:
+            ref = self.__normalize_to_now()
         for _ in range(n):
-            nxt = self.__cron.get_next(datetime)
-            yield (nxt, nxt + self.__delta)
+            start, end = self.get_next_range(ref)
+            yield start, end
+            # Advance reference slightly past the end of the current event
+            ref = end + self.__delta
+
+    def is_event_on(self, ref: datetime | None = None) -> bool:
+        if not ref:
+            ref = self.__normalize_to_now()
+        start, end = self.get_prev_range(ref)
+        return start <= ref < end

@@ -1,7 +1,7 @@
 # STL
 import typing
 from math import floor
-from typing import Tuple, Literal, Optional, Generator
+from typing import Tuple, Literal, Optional, Generator, cast
 from datetime import datetime, timedelta
 
 # PDM
@@ -11,6 +11,7 @@ from skyfield.timelib import Time
 
 # LOCAL
 from tenpo.log_utils import getLogger
+from tenpo.croniter_utils import ValidTZ, parse_delta, parse_timezone
 
 LOG = getLogger()
 
@@ -86,8 +87,11 @@ def degrees_to_emoji(d: numpy.float64) -> str:
     return emoji  # if some wacky bytes shit happens i will be mad
 
 
-def datetime_to_emoji(t: datetime) -> str:
+def datetime_to_emoji(t: datetime | None = None) -> str:
     """get the emoji most closely representing the current phase during `t`"""
+    if not t:
+        t = now_skyfield()
+
     d = datetime_to_degrees(t)
     emoji = degrees_to_emoji(d)
     return emoji
@@ -155,3 +159,69 @@ def major_phases_from_now(
 ) -> Generator[Tuple[Time, Phase], None, None]:
     now = now_skyfield()
     yield from major_phases_from(now, limit)
+
+
+class PhaseTimer:
+    __tz: ValidTZ
+    __delta: timedelta
+
+    def __init__(self, tz_str: str, delta_str: str):
+        self.__tz = parse_timezone(tz_str)
+        self.__delta = parse_delta(delta_str)
+
+    # TODO: better with a ref and forward arg instead?
+    def __find_moon_events(self, start: datetime, end: datetime):
+        """Finds moon phase events (full and new) between two datetimes."""
+        t0 = TS.from_datetime(start)
+        t1 = TS.from_datetime(end)
+        f = almanac.moon_phases(EPH)
+        times, phases = almanac.find_discrete(t0, t1, f)
+        events = [(t, p) for t, p in zip(times, phases) if p in (0, 2)]
+        return events
+
+    def __ts_to_datetime(self, ts: Time) -> datetime:
+        time = cast(datetime, ts.utc_datetime())
+        return time.astimezone(self.__tz)
+
+    def get_prev(self, ref: datetime | None = None) -> datetime:
+        if not ref:
+            ref = datetime.now(tz=self.__tz)
+        search_from = ref - timedelta(days=40)
+        search_to = ref
+        events = self.__find_moon_events(search_from, search_to)
+        return self.__ts_to_datetime(events[-1][0])  # last
+
+    def get_next(self, ref: datetime | None = None) -> datetime:
+        if not ref:
+            ref = datetime.now(tz=self.__tz)
+        search_from = ref
+        search_to = ref + timedelta(days=40)
+        events = self.__find_moon_events(search_from, search_to)
+        return self.__ts_to_datetime(events[0][0])  # first
+
+    def get_prev_range(self, ref: datetime | None = None) -> tuple[datetime, datetime]:
+        start = self.get_prev(ref)
+        return start, start + self.__delta
+
+    def get_next_range(self, ref: datetime | None = None) -> tuple[datetime, datetime]:
+        start = self.get_next(ref)
+        return start, start + self.__delta
+
+    def get_events_from(
+        self,
+        n: int = 3,
+        ref: datetime | None = None,
+    ) -> Generator[Tuple[datetime, datetime], None, None]:
+        if not ref:
+            ref = datetime.now(tz=self.__tz)
+        for _ in range(n):
+            start, end = self.get_next_range(ref)
+            yield start, end
+            ref = start + timedelta(days=1)
+            # start/end are always ~15d apart
+
+    def is_event_on(self, ref: datetime | None = None) -> bool:
+        if not ref:
+            ref = datetime.now(tz=self.__tz)
+        start, end = self.get_prev_range(ref)
+        return start <= ref < end

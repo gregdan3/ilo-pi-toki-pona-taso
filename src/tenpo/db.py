@@ -29,7 +29,7 @@ from sqlalchemy.dialects.sqlite import Insert as insert
 
 # LOCAL
 from tenpo.log_utils import getLogger
-from tenpo.phase_utils import is_major_phase
+from tenpo.phase_utils import PhaseTimer, is_major_phase
 from tenpo.croniter_utils import EventTimer, parse_delta
 
 LOG = getLogger()
@@ -373,6 +373,11 @@ class TenpoDB:
         d = await self.get_length(eid)
         return EventTimer(c, t, d)
 
+    async def get_moon_timer(self, eid: int) -> PhaseTimer:
+        t = await self.get_timezone(eid)
+        d = await self.get_length(eid)
+        return PhaseTimer(t, d)
+
     async def get_response(self, eid: int) -> str:  # DEFAULT: react
         return await self.__get_config_item(eid, ConfigKey.RESPONSE, DEFAULT_RESPONSE)
 
@@ -514,10 +519,11 @@ class TenpoDB:
         elif timing_method == "ala":
             return False
         elif timing_method == "mun":
-            return is_major_phase()
+            timer = await self.get_moon_timer(eid)
+            return timer.is_event_on()
         elif timing_method == "wile":
             timer = await self.get_event_timer(eid)
-            return timer.is_event_now()
+            return timer.is_event_on()
         return False
 
     async def startswith_ignorable(self, eid: int, message: str) -> bool:

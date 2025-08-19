@@ -238,7 +238,7 @@ class CogRules(Cog):
             )
             return
 
-        prospective_dates = [t for t in timer.get_ranges()]
+        prospective_dates = [t for t in timer.get_events_from()]
         formatted = format_date_ranges(prospective_dates)
         if prospective_dates[0][1] > prospective_dates[1][0]:  # TODO: this sucks
             resp = "pakala li ken la mi pana ala! pini tenpo li lon insa pi open tenpo. o lukin: \n"
@@ -599,16 +599,26 @@ async def cmd_list_rules(ctx: ApplicationContext, actor: DiscordActor, ephemeral
         timing = await DB.get_timing(actor.id)
         blurbs.append("nasin tenpo ma li " + format_timing_data(timing))
 
+        method = await DB.get_timing(actor.id)
         cron = await DB.get_cron(actor.id)
         timezone = await DB.get_timezone(actor.id)
         length = await DB.get_length(actor.id)
-        if cron and timezone and length:
+        if cron and timezone and length and method == "wile":
             try:
                 timer = await DB.get_event_timer(actor.id)
-                ranges = format_date_ranges([t for t in timer.get_ranges()])
+                ranges = format_date_ranges([t for t in timer.get_events_from()])
                 blurbs.append(format_cron_data(cron, timezone, length) + "\n" + ranges)
             except InvalidEventTimer as e:
                 blurbs.append(format_cron_data(cron, timezone, length))
+                blurbs.append(str(e))
+
+        if timezone and length and method == "mun":
+            try:
+                timer = await DB.get_moon_timer(actor.id)
+                ranges = format_date_ranges([t for t in timer.get_events_from()])
+                blurbs.append(format_cron_data("mun", timezone, length) + "\n" + ranges)
+            except InvalidEventTimer as e:
+                blurbs.append(format_cron_data("mun", timezone, length))
                 blurbs.append(str(e))
 
     result = "\n\n".join(blurbs)  # TODO: best order?
