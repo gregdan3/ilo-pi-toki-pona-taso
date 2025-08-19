@@ -81,6 +81,11 @@ DEFAULT_REACTS = [
 DEFAULT_RESPONSE = "sitelen"
 DEFAULT_TIMER = "ala"
 DEFAULT_TIMEZONE = "UTC"
+DEFAULT_CRON = "0 0 * * 6"
+DEFAULT_LENGTH = "24h"
+DEFAULT_SPOILERS = True
+DEFAULT_DISABLED = False
+DEFAULT_OPENS = []
 
 
 class Pali(enum.Enum):
@@ -264,6 +269,7 @@ class TenpoDB:
     async def reset_config(self, eid: int):
         await self.__set_config(eid, {})
 
+    # TODO: just delete them all???
     async def reset_rules(self, eid: int):
         rules, exceptions = await self.list_rules(eid)
         for ctype, ids in rules.items():
@@ -288,16 +294,24 @@ class TenpoDB:
         await self.__set_config_item(eid, ConfigKey.SPOILERS, spoilers)
 
     async def get_spoilers(self, eid: int) -> bool:
-        return cast(bool, await self.__get_config_item(eid, ConfigKey.SPOILERS, True))
+        return cast(
+            bool,
+            await self.__get_config_item(eid, ConfigKey.SPOILERS, DEFAULT_SPOILERS),
+        )
 
     async def set_disabled(self, eid: int, disabled: bool):
         await self.__set_config_item(eid, ConfigKey.DISABLED, disabled)
 
     async def get_disabled(self, eid: int) -> bool:
-        return cast(bool, await self.__get_config_item(eid, ConfigKey.DISABLED, False))
+        return cast(
+            bool,
+            await self.__get_config_item(eid, ConfigKey.DISABLED, DEFAULT_DISABLED),
+        )
 
     async def get_opens(self, eid: int) -> List[str]:
-        opens = cast(List[str], await self.__get_config_item(eid, ConfigKey.OPENS, []))
+        opens = cast(
+            List[str], await self.__get_config_item(eid, ConfigKey.OPENS, DEFAULT_OPENS)
+        )
         return opens
 
     async def toggle_open(self, eid: int, open: str) -> bool:
@@ -324,7 +338,9 @@ class TenpoDB:
         return not is_same  # true = wrote, false = deleted
 
     async def get_cron(self, eid: int) -> str:
-        return cast(str, await self.__get_config_item(eid, ConfigKey.CRON))
+        return cast(
+            str, await self.__get_config_item(eid, ConfigKey.CRON, DEFAULT_CRON)
+        )
 
     async def set_cron(self, eid: int, cron: str):
         return await self.__set_config_item(eid, ConfigKey.CRON, cron)
@@ -338,7 +354,9 @@ class TenpoDB:
         return await self.__set_config_item(eid, ConfigKey.TIMEZONE, timezone)
 
     async def get_length(self, eid: int) -> str:
-        return cast(str, await self.__get_config_item(eid, ConfigKey.LENGTH))
+        return cast(
+            str, await self.__get_config_item(eid, ConfigKey.LENGTH, DEFAULT_LENGTH)
+        )
 
     async def set_length(self, eid: int, length: str):
         return await self.__set_config_item(eid, ConfigKey.LENGTH, length)
