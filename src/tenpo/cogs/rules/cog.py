@@ -161,14 +161,6 @@ class CogRules(Cog):
     ):
         ma = ctx.guild
         assert ma
-        if nasin == "wile":
-            try:
-                await DB.get_event_timer(ma.id)
-            except InvalidEventTimer as e:
-                await ctx.respond(
-                    "sina wile kepeken nasin `wile` o pana e tenpo kepeken ilo `/lawa_ma tenpo`"
-                )
-                return
         await DB.set_timing(ma.id, nasin)
         await ctx.respond("mi kama kepeken nasin __%s__" % nasin)
 
