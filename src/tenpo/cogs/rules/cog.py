@@ -689,7 +689,9 @@ mi __ilo pi toki pona taso__ li pona e toki {ref}! o lukin e ken mi:
   - {format_timing_data('wile')}
 - `{prefix} tenpo [ijo mute]`: nasin Cron la mi lukin e toki {ref} lon tenpo. <https://crontab.guru/>
   - sina pana ala e `nasin_tenpo` la mi kepeken nasin tenpo `UTC`.
-  - sina pana ala e `suli_tenpo` la mi kepeken suli tenpo `24h`"""
+  - sina pana ala e `suli_tenpo` la mi kepeken suli tenpo `24h`
+- `{prefix} suli_tenpo [suli_tenpo]`: tenpo pi toki pona taso o suli seme?
+- `{prefix} nasin_tenpo_ma [nasin_tenpo_ma]`: mi kepeken nasin tenpo pi ma seme?"""
 
     subs = {}
     if is_guild:
