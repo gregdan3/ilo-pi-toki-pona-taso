@@ -31,7 +31,14 @@ from tenpo.str_utils import (
     format_reacts_management,
     format_removed_role_info,
 )
-from tenpo.croniter_utils import EventTimer, InvalidEventTimer
+from tenpo.croniter_utils import (
+    InvalidTZ,
+    EventTimer,
+    InvalidDelta,
+    InvalidEventTimer,
+    parse_delta,
+    parse_timezone,
+)
 
 LOG = getLogger()
 
@@ -171,33 +178,33 @@ class CogRules(Cog):
     @commands.has_guild_permissions(manage_channels=True)
     @option(
         name="tenpo_lili",
-        description="tenpo lili nanpa seme (pana ala la 0)",
-        choices=[str(i) for i in range(0, 60, 30)],
+        description="tenpo lili nanpa seme? (pana ala la 0)",
+        choices=[str(i) for i in range(0, 60, 15)],
     )
     @option(
         name="tenpo_suli",
-        description="tenpo suli nanpa seme (0-23. ken: 0,12 */6. pana ala la 0.)",
+        description="tenpo suli nanpa seme? (0-23. ken: 0,12 */6. pana ala la 0.)",
     )
     @option(
         name="tenpo_suno_pi_tenpo_mun",
-        description="tenpo mun la tenpo suno seme (1-31. ken: */7 2,9,13,30. pana ala la *)",
+        description="tenpo mun la tenpo suno seme? (1-31. ken: */7 2,9,13,30. pana ala la *)",
     )
     @option(
         name="tenpo_suno_pi_tenpo_esun",
-        description="tenpo esun la o open lon tenpo suno seme (0-6. ken: */2 2,6. pana ala la 6)",
+        description="tenpo esun la tenpo suno seme? (0-6. ken: */2 2,6. pana ala la 6)",
     )
     @option(
         name="tenpo_mun",
-        description="tenpo mun nanpa seme (1-12. ken: * */3 1,4,9,11. pana ala la *)",
+        description="tenpo mun nanpa seme? (1-12. ken: * */3 1,4,9,11. pana ala la *)",
     )
     @option(
-        name="nasin_tenpo",
-        description="tenpo o tan ma seme? (ni li ken UTC li ken CST li ken ante. pana ala la UTC)",
+        name="nasin_tenpo_ma",
+        description="nasin tenpo ma seme? (ken: CST, UTC-6, US/Central. pana ala la UTC)",
     )
     @option(
         # TODO: make optional. fetch current if missing
         name="suli_tenpo",
-        description="tenpo o awen lon tenpo pi suli seme? (ken: 24h, 90m, 3d. pana ala la 24h)",
+        description="tenpo o suli seme? (ken: 24h, 90m, 3d, 1mo. pana ala la 24h)",
     )
     async def guild_set_event_time_full(
         self,
@@ -207,7 +214,7 @@ class CogRules(Cog):
         tenpo_suno_pi_tenpo_mun: str = "*",
         tenpo_suno_pi_tenpo_suno_luka_tu: str = "6",
         tenpo_mun: str = "*",
-        nasin_tenpo: str = "UTC",
+        nasin_tenpo_ma: str = "UTC",
         suli_tenpo: str = "24h",
     ):
         ma = ctx.guild
@@ -223,11 +230,11 @@ class CogRules(Cog):
         cron = " ".join(ale)
 
         try:
-            timer = EventTimer(cron, nasin_tenpo, suli_tenpo)
+            timer = EventTimer(cron, nasin_tenpo_ma, suli_tenpo)
         except InvalidEventTimer as e:
             await ctx.respond(
                 "%s\no lukin e ale: \n`%s` \n`%s` \n`%s`\n\nsina wile e sona pi ilo Cron la o lukin e ni: <https://crontab.guru/>"
-                % (e, cron, nasin_tenpo, suli_tenpo)
+                % (e, cron, nasin_tenpo_ma, suli_tenpo)
             )
             return
 
@@ -243,9 +250,64 @@ class CogRules(Cog):
         resp += formatted
 
         await DB.set_cron(ma.id, cron)
-        await DB.set_timezone(ma.id, nasin_tenpo)
+        await DB.set_timezone(ma.id, nasin_tenpo_ma)
         await DB.set_length(ma.id, suli_tenpo)
 
+        await ctx.respond(resp)
+
+    @guild_rules.command(
+        name="suli_tenpo",
+        description="tenpo pi toki pona taso o suli seme?",
+    )
+    @commands.has_guild_permissions(manage_channels=True)
+    @option(
+        name="suli_tenpo",
+        description="tenpo o suli seme? (ken: 24h, 90m, 3d, 1mo)",
+    )
+    async def guild_set_event_length(
+        self,
+        ctx: ApplicationContext,
+        suli_tenpo: str,
+    ):
+        ma = ctx.guild
+        assert ma
+
+        try:
+            parse_delta(suli_tenpo)
+        except InvalidDelta as e:
+            await ctx.respond(e)
+            return
+
+        await DB.set_length(ma.id, suli_tenpo)
+        resp = f"tenpo kama pi toki pona taso li suli ni: {suli_tenpo}"
+
+        await ctx.respond(resp)
+
+    @guild_rules.command(
+        name="nasin_tenpo_ma",
+        description="mi o kepeken nasin tenpo pi ma seme?",
+    )
+    @commands.has_guild_permissions(manage_channels=True)
+    @option(
+        name="nasin_tenpo_ma",
+        description="nasin tenpo ma seme? (ken: CST, UTC-6, US/Central)",
+    )
+    async def guild_set_timezone(
+        self,
+        ctx: ApplicationContext,
+        nasin_tenpo_ma: str,
+    ):
+        ma = ctx.guild
+        assert ma
+
+        try:
+            parse_timezone(nasin_tenpo_ma)
+        except InvalidTZ as e:
+            await ctx.respond(e)
+            return
+
+        await DB.set_timezone(ma.id, nasin_tenpo_ma)
+        resp = f"mi kama kepeken nasin tenpo ma ni: {nasin_tenpo_ma}"
         await ctx.respond(resp)
 
     """
@@ -536,15 +598,18 @@ async def cmd_list_rules(ctx: ApplicationContext, actor: DiscordActor, ephemeral
 
         timing = await DB.get_timing(actor.id)
         blurbs.append("nasin tenpo ma li " + format_timing_data(timing))
-        if timing == "wile":
-            cron = await DB.get_cron(actor.id)
-            timezone = await DB.get_timezone(actor.id)
-            length = await DB.get_length(actor.id)
-            timer = await DB.get_event_timer(actor.id)
 
-            if cron and timezone and length:
+        cron = await DB.get_cron(actor.id)
+        timezone = await DB.get_timezone(actor.id)
+        length = await DB.get_length(actor.id)
+        if cron and timezone and length:
+            try:
+                timer = await DB.get_event_timer(actor.id)
                 ranges = format_date_ranges([t for t in timer.get_ranges()])
                 blurbs.append(format_cron_data(cron, timezone, length) + "\n" + ranges)
+            except InvalidEventTimer as e:
+                blurbs.append(format_cron_data(cron, timezone, length))
+                blurbs.append(str(e))
 
     result = "\n\n".join(blurbs)  # TODO: best order?
     await ctx.respond(result, ephemeral=ephemeral)
