@@ -1,7 +1,7 @@
 # STL
 import re
 import random
-from typing import Optional, cast
+from typing import Any, Optional, cast
 
 # PDM
 import discord
@@ -210,12 +210,23 @@ async def delete_message(message: Message, dm: bool = True):
 async def resend_message(message: Message):
     reply = prep_msg_for_resend(message.content, message.author.id)
 
+    kwargs: dict[Any, Any] = {
+        "suppress": True,
+        "allowed_mentions": RESEND_MENTIONS,
+    }
+
+    if message.reference:
+        kwargs["reference"] = message.reference
+
+    # if message.attachments:
+    #     ex = message.attachments[0]
+    #     ex.waveform
+    #     kwargs["file"] =
+
     # we will resend, so no DM needed
     await delete_message(message, dm=False)
     try:
-        await message.channel.send(
-            reply, suppress=True, allowed_mentions=RESEND_MENTIONS
-        )
+        _ = await message.channel.send(reply, **kwargs)
     except discord.errors.Forbidden:
         LOG.error("Couldn't re-send message; disallowed")
     except discord.errors.HTTPException as e:
