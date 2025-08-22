@@ -1,25 +1,20 @@
 # STL
 import re
-from typing import List, Literal, cast
+from typing import Literal, cast
 
 # PDM
 import emoji
-from discord import Cog, Role, Guild, Thread, CategoryChannel, SlashCommandGroup, option
+from discord import Cog, Role, Guild, SlashCommandGroup, option
 from discord.ext import commands
 from discord.commands.context import ApplicationContext
 
 # LOCAL
-from tenpo.db import Pali, IjoSiko
-from tenpo.types import DiscordActor, DiscordContainer, MessageableGuildChannel
+from tenpo.types import DiscordActor, MessageableGuildChannel
 from tenpo.__main__ import DB
 from tenpo.constants import NASIN_PI_MA_ILO, NANPA_PI_JAN_PALI
 from tenpo.log_utils import getLogger
 from tenpo.str_utils import (
-    PALI_MAP,
     BANNED_REACTS,
-    CONTAINER_MAP,
-    format_reacts,
-    format_channel,
     format_cron_data,
     format_role_info,
     format_opens_user,
@@ -494,7 +489,7 @@ async def cmd_list_rules(ctx: ApplicationContext, actor: DiscordActor, ephemeral
     rules, exceptions = await DB.list_rules(actor.id)
     rules_info = format_rules_exceptions(rules, exceptions)
     if not rules_info:
-        rules_info = "**lawa lukin li lon ala** la mi lukin ala e toki sina.\no lawa e ma kepeken `/lawa ma` e tomo kepeken `/lawa tomo`."
+        rules_info = "**lawa lukin li lon ala** la mi lukin ala e toki sina.\no pana e lawa kepeken `/lawa sin`"
 
     blurbs.append(rules_info)
 
@@ -581,12 +576,11 @@ mi __ilo pi toki pona taso__ li pona e toki {ref}! o lukin e ken mi:
 ### ken
 - `{prefix} lukin [lukin|ala]`: mi lukin ala lukin e toki {ref}.
 - `{prefix} len [ken|ala]`: toki {ref} li ken ala ken kepeken nasin len ||ni||.%(ken)s
-### lawa tomo
-- `{prefix} [tomo|ma] (ala)`: mi o lukin e toki {ref} lon seme? 
-  - toki {ref} li pona ala lon tomo la mi pona e ni.
-  - sina pana sin e tomo la mi kama lukin ala e ona.
-  - `ala` la mi lukin ala e ijo. ni li ken tomo lon insa pi kulupu tomo.
-  - sina wile lawa e ale la o kepeken `/lawa ma`.%(lawa_tenpo)s
+### lawa lukin
+- `{prefix} [sin]`: mi o lukin e toki lon seme? 
+  - toki li pona ala lon ijo la mi pona e ni.
+  - sina pana sin e lawa sama la mi weka e ona.
+  - sina ken ken e toki ale lon tomo, lon insa pi tomo pi toki pona taso.%(lawa_tenpo)s
 
 -# ilo li tan mun Kekan San <@{NANPA_PI_JAN_PALI}>. o kama lon ma ilo: <{NASIN_PI_MA_ILO}>. mu.
 """
