@@ -1,5 +1,3 @@
-# TODO: REFACTOR: Divide DB interface based on purpose i.e. entity evaluation, image handling, calendar handling, etc
-
 # STL
 import enum
 from typing import Any, Set, Dict, List, Tuple, Literal, Optional, TypeAlias, cast
@@ -29,8 +27,8 @@ from sqlalchemy.dialects.sqlite import Insert as insert
 
 # LOCAL
 from tenpo.log_utils import getLogger
-from tenpo.phase_utils import PhaseTimer, is_major_phase
-from tenpo.croniter_utils import EventTimer, parse_delta
+from tenpo.phase_utils import PhaseTimer
+from tenpo.croniter_utils import EventTimer
 
 LOG = getLogger()
 Base = declarative_base()
@@ -252,6 +250,8 @@ class TenpoDB:
     ) -> Optional[JSONType]:
         config = await self.__get_config(eid)
         item = config.get(key.value, default) if config else default
+        if isinstance(item, list) and not item:
+            return default
         return item
 
     async def __set_config_item(
@@ -289,6 +289,15 @@ class TenpoDB:
             List[str],
             await self.__get_config_item(eid, ConfigKey.REACTS, DEFAULT_REACTS),
         )
+
+    async def delete_react(self, eid: int, react: str) -> bool:
+        reacts = await self.get_reacts(eid)
+        result = False
+        if react in reacts:
+            reacts.remove(react)
+            result = True
+        await self.set_reacts(eid, reacts)
+        return result
 
     async def set_spoilers(self, eid: int, spoilers: bool):
         await self.__set_config_item(eid, ConfigKey.SPOILERS, spoilers)

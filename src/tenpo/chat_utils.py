@@ -50,9 +50,9 @@ sina wile ala e weka la o kepeken `/lawa nasin`""",
 async def send_react_error_dm(message: Message, react: str):
     await send_dm_to_user(
         message.author,
-        f"""mi alasa sitelen e toki sina ni:
+        f"""mi alasa pana e sitelen ni tawa toki sina. taso ona li pakala la mi weka e ona:
+{codeblock_wrap(react)}
+mi alasa sitelen e toki sina ni:
 {create_message_link(message)}
-{codeblock_wrap(message.content)}
-mi alasa kepeken sitelen ni, taso mi ken ala:
-{codeblock_wrap(react)}""",
+{codeblock_wrap(message.content)}""",
     )
