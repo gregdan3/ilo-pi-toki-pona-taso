@@ -115,10 +115,14 @@ async def should_check_user(message: Message) -> bool:
 
 
 async def should_check_guild(message: Message) -> bool:
+    if not message.guild:
+        return False
+
     channel, guild = message.channel, message.guild
     if isinstance(channel, Thread):
         # TODO: configurable thread behavior?
         channel = channel.parent
+
     if await DB.get_disabled(guild.id):
         LOG.debug("Ignoring guild message; guild has disabled")
         return False
@@ -151,7 +155,6 @@ async def should_respond(message: Message) -> bool:
         return False
 
     if await should_check_guild(message):
-        assert message.guild
         spoilers = await DB.get_spoilers(message.guild.id)
         if not is_toki_pona(message.content, spoilers=spoilers):
             return True
