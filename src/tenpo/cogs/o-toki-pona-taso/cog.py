@@ -12,6 +12,7 @@ from discord.reaction import Reaction
 from discord.ext.commands import Cog
 
 # LOCAL
+from tenpo.types import DiscordContainer
 from tenpo.__main__ import DB
 from tenpo.log_utils import getLogger
 from tenpo.str_utils import prep_msg_for_resend
@@ -194,7 +195,9 @@ async def react_message(message: Message):
             await resend_message(message)
             # fallback since user may have blocked bot
             return
-
+        except discord.errors.NotFound as e:
+            LOG.warning("Couldn't react to user message; not found.")
+            return
         except discord.errors.HTTPException as e:
             LOG.warning("Couldn't react %s to user %s", react, message.author.name)
             await send_react_error_dm(message, react)
@@ -212,9 +215,11 @@ async def delete_message(message: Message, dm: bool = True):
         if dm:
             await send_delete_dm(message)
     except discord.errors.Forbidden:
-        LOG.error("Couldn't delete message; disallowed")
+        LOG.warning("Couldn't delete message; disallowed")
+    except discord.errors.NotFound:
+        LOG.warning("Couldn't delete message; not found")
     except discord.errors.HTTPException as e:
-        LOG.error("Couldn't delete message due to unexpected exception!")
+        LOG.error("Couldn't delete message; reason unknown")
         LOG.error(f"Error code: {e.code}")
         LOG.error(f"Error text: {e.text}")
 
