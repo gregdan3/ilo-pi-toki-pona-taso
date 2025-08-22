@@ -39,10 +39,11 @@ if DEBUG_GUILDS:
     DEBUG_GUILDS = [int(n) for n in DEBUG_GUILDS.split(",") if n and n.isdigit()]
 
 INTENTS = Intents(
-    guilds=True,  # get channel, many guild attrs
-    guild_messages=True,  # we don't support dms, for now
-    guild_reactions=True,  # only `on_reaction_add` below
-    message_content=True,  # needed to evaluate: ona li toki ala toki pona
+    guilds=True,  # knowing bot's own guild membership
+    members=True,  # knowing mutual guilds when setting up rules
+    messages=True,  # see messages in DMs and Guilds
+    message_content=True,  # so we can evaluate messages for goodness
+    reactions=True,  # knowing what reactions are available in guilds
 )
 BOT = commands.Bot(
     command_prefix="/",
@@ -57,13 +58,6 @@ DB: TenpoDB = BOT.loop.run_until_complete(TenpoDBFactory(database_file=DB_FILE))
 async def on_ready():
     for index, guild in enumerate(BOT.guilds):
         LOG.info("{}) {}".format(index + 1, guild.name))
-
-
-@BOT.event
-async def on_reaction_add(reaction, user):
-    if reaction.message.author == BOT.user:
-        if reaction.emoji == "❌":
-            await reaction.message.delete()
 
 
 def load_extensions():
