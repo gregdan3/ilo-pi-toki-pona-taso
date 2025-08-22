@@ -1,10 +1,10 @@
 # STL
 import re
-from typing import Literal, cast
+from typing import List, Literal, cast
 
 # PDM
 import emoji
-from discord import Cog, Role, Guild, CategoryChannel, SlashCommandGroup, option
+from discord import Cog, Role, Guild, Thread, CategoryChannel, SlashCommandGroup, option
 from discord.ext import commands
 from discord.commands.context import ApplicationContext
 
@@ -31,6 +31,7 @@ from tenpo.str_utils import (
     format_reacts_management,
     format_removed_role_info,
 )
+from tenpo.rules_menu import EnterRule
 from tenpo.croniter_utils import (
     InvalidTZ,
     EventTimer,
@@ -70,7 +71,7 @@ class CogRules(Cog):
     async def guild_delete_rules(self, ctx: ApplicationContext):
         actor = ctx.guild
         assert actor
-        await cmd_delete_rules(ctx, actor, ephemeral=True)
+        await cmd_delete_all_rules(ctx, actor, ephemeral=True)
 
     @guild_rules.command(name="poki", description="ma ni la jan poki o toki pona taso")
     @option(
@@ -125,31 +126,16 @@ class CogRules(Cog):
         lukin = cast(LukinOptions, lukin)
         return await cmd_set_disabled(ctx, actor, lukin, ephemeral=False)
 
-    @guild_rules.command(
-        name="tomo", description="tomo seme la ale o toki ala toki pona?"
-    )
-    @option(name="tomo", description="tomo seme, kulupu seme")
-    @option(
-        name="lukin_ala",
-        description="tomo li lon kulupu pi lukin ilo la ilo li ken lukin ala e ona.",
-    )
+    @guild_rules.command(name="sin", description="o toki pona taso e seme?")
     @commands.has_guild_permissions(manage_channels=True)
-    async def guild_set_channel_rule(
-        self,
-        ctx: ApplicationContext,
-        tomo: MessageableGuildChannel | CategoryChannel,
-        lukin_ala: bool = False,
-    ):
+    async def guild_create_rule(self, ctx: ApplicationContext):
         actor = ctx.guild
         assert actor
-        await cmd_upsert_rule(ctx, actor, tomo, lukin_ala, ephemeral=False)
-
-    @guild_rules.command(name="ma", description="ma ni la ale o toki ala toki pona?")
-    @commands.has_guild_permissions(manage_channels=True)
-    async def guild_set_guild_rule(self, ctx: ApplicationContext):
-        ma = ctx.guild
-        assert ma  # nasa la ma li ken lawa e ma
-        await cmd_upsert_rule(ctx, ma, ma, ephemeral=False)
+        await ctx.respond(
+            "sina wile lawa e seme lon ma?",
+            view=EnterRule(ctx.guild),
+            ephemeral=True,
+        )
 
     @guild_rules.command(
         name="nasin_tenpo",
@@ -349,28 +335,13 @@ class CogRules(Cog):
             f"sina toki pona ala la mi __{nasin}__ e toki", ephemeral=True
         )
 
-    @user_rules.command(name="tomo", description="tomo la sina o toki ala toki pona?")
-    @option(name="tomo", description="tomo seme, kulupu seme")
-    @option(
-        name="lukin_ala",
-        description="tomo la ilo li lukin la. ni la sina ken toki pona ala",
-    )
-    async def user_toggle_channel(
-        self,
-        ctx: ApplicationContext,
-        tomo: MessageableGuildChannel | CategoryChannel,
-        lukin_ala: bool = False,
-    ):
-        await cmd_upsert_rule(ctx, ctx.user, tomo, lukin_ala, ephemeral=True)
-
-    @user_rules.command(name="ma", description="ma ni la sina o toki ala toki pona?")
-    async def user_toggle_guild(
-        self,
-        ctx: ApplicationContext,
-    ):
-        ma = ctx.guild
-        assert ma
-        await cmd_upsert_rule(ctx, ctx.user, ma, ephemeral=True)
+    @user_rules.command(name="sin", description="o toki pona taso e seme?")
+    async def user_create_rule(self, ctx: ApplicationContext):
+        await ctx.respond(
+            "sina wile lawa e seme?",
+            view=EnterRule(ctx.user),
+            ephemeral=True,
+        )
 
     @user_rules.command(
         name="open",
@@ -448,31 +419,6 @@ class CogRules(Cog):
         _ = await ctx.respond(resp, ephemeral=True)
 
 
-async def cmd_upsert_rule(
-    ctx: ApplicationContext,
-    jan_anu_ma: DiscordActor,
-    poki: DiscordContainer,
-    lukin_ala: bool = False,
-    ephemeral: bool = False,
-):
-    ctype = IjoSiko.CHANNEL
-    if isinstance(poki, Guild):
-        ctype = IjoSiko.GUILD
-    elif isinstance(poki, CategoryChannel):
-        ctype = IjoSiko.CATEGORY
-    elif isinstance(poki, MessageableGuildChannel):
-        ctype = IjoSiko.CHANNEL  # TODO: repetitive
-    else:
-        LOG.error("Unknown item given to rules: %s", poki)
-        LOG.error("... %s" % poki.__dict__)
-        await ctx.respond("mi ken ala lawa e ni. ni li seme?")
-        return
-
-    action = await DB.upsert_rule(poki.id, ctype, jan_anu_ma.id, lukin_ala)
-    response = await build_rule_resp(poki, ctype, action, lukin_ala)
-    await ctx.respond(response, ephemeral=ephemeral)
-
-
 async def cmd_set_spoilers(
     ctx: ApplicationContext,
     actor: DiscordActor,
@@ -523,31 +469,6 @@ async def cmd_set_disabled(
     assert isinstance(disabled, bool)
     await DB.set_disabled(actor.id, disabled)
     await ctx.respond(resp, ephemeral=ephemeral)
-
-
-async def build_rule_resp(
-    container: DiscordContainer,
-    ctype: IjoSiko,
-    action: Pali,
-    exception: bool,
-):
-    container_ = CONTAINER_MAP[ctype]
-    verb = PALI_MAP[action]
-    formatted = (
-        format_channel(container.id)
-        if ctype != IjoSiko.GUILD
-        else f"__{container.name}__"  # TODO: formatting guilds in different ways
-    )
-
-    result = ""
-    if action in (Pali.PANA, Pali.ANTE):
-        if exception:
-            result += "ona la sina ken toki ale."
-        else:
-            result += "ona la sina o toki pona taso."
-
-    response = f"{container_} {formatted} la mi {verb} e lawa. {result}"
-    return response
 
 
 # TODO: for following two funcs, better division of user|guild behavior?
