@@ -59,7 +59,7 @@ class CogRules(Cog):
         assert actor
         await cmd_lawa_help(ctx, actor, ephemeral=True)
 
-    @guild_rules.command(name="ale", description="ma ni la lawa li seme?")
+    @guild_rules.command(name="seme", description="ma ni la lawa li seme?")
     async def guild_list_rules(self, ctx: ApplicationContext):
         actor = ctx.guild
         assert actor
@@ -319,7 +319,7 @@ class CogRules(Cog):
     async def user_help(self, ctx: ApplicationContext):
         await cmd_lawa_help(ctx, ctx.user, ephemeral=True)
 
-    @user_rules.command(name="ale", description="lawa sina li seme?")
+    @user_rules.command(name="seme", description="lawa sina li seme?")
     async def user_list_rules(self, ctx: ApplicationContext):
         await cmd_list_rules(ctx, ctx.user, ephemeral=True)
 
