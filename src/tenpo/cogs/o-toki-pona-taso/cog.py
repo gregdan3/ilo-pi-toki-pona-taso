@@ -91,11 +91,11 @@ async def should_check_user(message: Message) -> bool:
     if not message.guild:
         return False
 
+    channel, guild = message.channel, message.guild
     if await DB.get_disabled(message.author.id):
         LOG.debug("Ignoring user message; user has disabled")
         return False
 
-    channel, guild = message.channel, message.guild
     channel_id = channel.parent_id if isinstance(channel, Thread) else channel.id
     thread_id = channel.id if isinstance(channel, Thread) else None
 
@@ -121,11 +121,11 @@ async def should_check_guild(message: Message) -> bool:
     if not message.guild:
         return False
 
+    channel, guild = message.channel, message.guild
     if await DB.get_disabled(guild.id):
         LOG.debug("Ignoring guild message; guild has disabled")
         return False
 
-    channel, guild = message.channel, message.guild
     channel_id = channel.parent_id if isinstance(channel, Thread) else channel.id
     thread_id = channel.id if isinstance(channel, Thread) else None
 
