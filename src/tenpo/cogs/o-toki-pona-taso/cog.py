@@ -174,26 +174,28 @@ async def get_react(eid: int):
 
 async def react_message(message: Message):
     uid = message.author.id
-    react = await get_react(uid)
-    LOG.debug("Reacting %s to user message" % react)
-    try:
-        await message.add_reaction(react)
-        return
-    except discord.errors.Forbidden:
-        LOG.warning("Couldn't react to user message; disallowed. Deleting instead!")
-        await resend_message(message)
-        # fallback since user may have blocked bot
-        return
-    except discord.errors.HTTPException as e:
-        if e.code != UNKNOWN_EMOJI_ERR_CODE:
-            LOG.error("Couldn't react due to unexpected exception!")
-            LOG.error(f"Error code: {e.code}")
-            LOG.error(f"Error text: {e.text}")
+
+    iters = 5
+    while iters > 0:
+        iters -= 1
+        react = await get_react(uid)
+
+        try:
+            await message.add_reaction(react)
+            LOG.debug("Reacted %s to user message" % react)
             return
 
-    # error handler
-    LOG.warning("Couldn't use react %s on user %s", react, message.author.name)
-    await send_react_error_dm(message, react)
+        except discord.errors.Forbidden as e:
+            LOG.warning("Couldn't react to user message; disallowed. Deleting instead!")
+            await resend_message(message)
+            # fallback since user may have blocked bot
+            return
+
+        except discord.errors.HTTPException as e:
+            LOG.warning("Couldn't react %s to user %s", react, message.author.name)
+            await send_react_error_dm(message, react)
+            result = await DB.delete_react(uid, react)
+            # loop
 
 
 async def delete_message(message: Message, dm: bool = True):
