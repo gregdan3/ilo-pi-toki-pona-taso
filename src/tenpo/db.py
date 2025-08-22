@@ -426,6 +426,23 @@ class TenpoDB:
         await self.set_calendar(eid, to_assign)
         return not is_same  # true = wrote, false = deleted
 
+    async def __select_rule(
+        self,
+        s: AsyncSession,
+        id: int,
+        ctype: IjoSiko,
+        eid: int,
+    ) -> tuple[bool, bool]:
+        stmt = select(Rules).where(
+            (Rules.id == id) & (Rules.eid == eid) & (Rules.ctype == ctype)
+        )
+        result = await s.execute(stmt)
+        rule = result.scalar_one_or_none()
+
+        if rule:
+            return True, bool(rule.exception)
+        return False, False
+
     async def __upsert_rule(
         self,
         s: AsyncSession,
@@ -456,6 +473,10 @@ class TenpoDB:
         )
         await s.execute(stmt)
         await s.commit()
+
+    async def select_rule(self, id: int, ctype: IjoSiko, eid: int) -> tuple[bool, bool]:
+        async with self.session() as s:
+            return await self.__select_rule(s, id, ctype, eid)
 
     async def upsert_rule(
         self,
