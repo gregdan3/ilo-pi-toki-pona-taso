@@ -197,6 +197,9 @@ async def react_message(message: Message):
             result = await DB.delete_react(uid, react)
             # loop
 
+    # TODO: i should probably inform user if we get here.
+    # but also, fuck's sake, what
+
 
 async def delete_message(message: Message, dm: bool = True):
     LOG.debug("Deleting user message")
