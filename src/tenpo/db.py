@@ -95,10 +95,13 @@ class Pali(enum.Enum):
 class IjoSiko(enum.Enum):
     # We HAVE to know what the type is when we read it from the DB
     # or else we're forced to ask discord which is which
+    ALL = "ALL"
     GUILD = "GUILD"
     CATEGORY = "CATEGORY"
     CHANNEL = "CHANNEL"
+    THREAD = "THREAD"
     USER = "USER"
+    NONE = "NONE"
 
 
 class ConfigKey(enum.Enum):
@@ -144,7 +147,13 @@ class NasinTenpo(enum.Enum):
 
 
 Lawa = Dict[IjoSiko, Set[int]]
-IjoPiLawaKen = [IjoSiko.GUILD, IjoSiko.CATEGORY, IjoSiko.CHANNEL]
+IjoPiLawaKen = [
+    IjoSiko.ALL,
+    IjoSiko.GUILD,
+    IjoSiko.CATEGORY,
+    IjoSiko.CHANNEL,
+    IjoSiko.THREAD,
+]
 
 
 class Entity(Base):
@@ -499,27 +508,30 @@ class TenpoDB:
             return rules, exceptions
 
     async def in_checked_channel(
-        self, eid: int, channel_id: int, category_id: Optional[int], guild_id: int
+        self,
+        entity_id: int,
+        thread_id: int | None,
+        channel_id: int | None,
+        category_id: int | None,
+        guild_id: int | None,
     ) -> bool:
-        rules, exceptions = await self.list_rules(eid)
+        rules, exceptions = await self.list_rules(entity_id)
 
-        if channel_id in rules[IjoSiko.CHANNEL]:
-            return True
-        if channel_id in exceptions[IjoSiko.CHANNEL]:
-            return False
+        for value, scope in [
+            (thread_id, IjoSiko.THREAD),
+            (channel_id, IjoSiko.CHANNEL),
+            (category_id, IjoSiko.CATEGORY),
+            (guild_id, IjoSiko.GUILD),
+        ]:
+            if not value:
+                continue
 
-        if category_id in rules[IjoSiko.CATEGORY]:
-            return True
-        if category_id in exceptions[IjoSiko.CATEGORY]:
-            return False
+            if value in rules[scope]:
+                return True
+            if value in exceptions[scope]:
+                return False
 
-        if guild_id in rules[IjoSiko.GUILD]:
-            return True
-        # guilds cannot have exceptions
-        # if guild_id in exceptions[Container.GUILD]:
-        #     return False
-
-        return False
+        return bool(rules[IjoSiko.ALL])
 
     async def is_event_time(self, eid: int) -> bool:
         timing_method = await self.get_timing(eid)

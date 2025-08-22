@@ -88,18 +88,21 @@ async def should_check(message: Message) -> bool:
 
 
 async def should_check_user(message: Message) -> bool:
-    channel, guild = message.channel, message.guild
-    if isinstance(channel, Thread):
-        # TODO: configurable thread behavior?
-        channel = channel.parent
+    if not message.guild:
+        return False
 
     if await DB.get_disabled(message.author.id):
         LOG.debug("Ignoring user message; user has disabled")
         return False
 
+    channel, guild = message.channel, message.guild
+    channel_id = channel.parent_id if isinstance(channel, Thread) else channel.id
+    thread_id = channel.id if isinstance(channel, Thread) else None
+
     if not await DB.in_checked_channel(
         message.author.id,
-        channel.id,
+        thread_id,
+        channel_id,
         channel.category_id,
         guild.id,
     ):
@@ -118,14 +121,13 @@ async def should_check_guild(message: Message) -> bool:
     if not message.guild:
         return False
 
-    channel, guild = message.channel, message.guild
-    if isinstance(channel, Thread):
-        # TODO: configurable thread behavior?
-        channel = channel.parent
-
     if await DB.get_disabled(guild.id):
         LOG.debug("Ignoring guild message; guild has disabled")
         return False
+
+    channel, guild = message.channel, message.guild
+    channel_id = channel.parent_id if isinstance(channel, Thread) else channel.id
+    thread_id = channel.id if isinstance(channel, Thread) else None
 
     if not await DB.is_event_time(guild.id):
         LOG.debug("Ignoring guild message; not event time")
@@ -137,9 +139,11 @@ async def should_check_guild(message: Message) -> bool:
             LOG.debug("Ignoring guild message; user missing role")
             return False
 
+    cast(DiscordContainer, message.channel)
     if not await DB.in_checked_channel(
         guild.id,
-        channel.id,
+        thread_id,
+        channel_id,
         channel.category_id,
         guild.id,
     ):
