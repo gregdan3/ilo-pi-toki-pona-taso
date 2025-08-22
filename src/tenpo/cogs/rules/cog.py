@@ -572,6 +572,9 @@ async def cmd_list_rules(ctx: ApplicationContext, actor: DiscordActor, ephemeral
     # TODO: sort by guild -> category -> channel considering ownership...
     rules, exceptions = await DB.list_rules(actor.id)
     rules_info = format_rules_exceptions(rules, exceptions)
+    if not rules_info:
+        rules_info = "**lawa lukin li lon ala** la mi lukin ala e toki sina.\no lawa e ma kepeken `/lawa ma` e tomo kepeken `/lawa tomo`."
+
     blurbs.append(rules_info)
 
     if not is_guild:
