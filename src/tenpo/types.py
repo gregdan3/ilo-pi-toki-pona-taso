@@ -3,6 +3,7 @@ from discord import (
     User,
     Guild,
     Member,
+    Thread,
     TextChannel,
     ForumChannel,
     StageChannel,
@@ -12,5 +13,8 @@ from discord import (
 
 # can't use discord.guild.GuildChannel because it includes categories
 MessageableGuildChannel = TextChannel | ForumChannel | StageChannel | VoiceChannel
-DiscordContainer = Guild | CategoryChannel | MessageableGuildChannel
-DiscordActor = Member | User | Guild
+GuildContainer = MessageableGuildChannel | CategoryChannel | Thread
+DiscordContainer = Guild | GuildContainer
+
+DiscordUser = Member | User
+DiscordActor = DiscordUser | Guild

@@ -3,17 +3,29 @@ import re
 from typing import List, Tuple
 from datetime import datetime
 
+# PDM
+from discord import Guild, Thread, CategoryChannel
+
 # LOCAL
 from tenpo.db import DEFAULT_REACTS, Pali, IjoSiko, IjoPiLawaKen
+from tenpo.types import (
+    DiscordUser,
+    DiscordActor,
+    DiscordContainer,
+    MessageableGuildChannel,
+)
 from tenpo.log_utils import getLogger
 from tenpo.toki_pona_utils import EMOTES_RE
 
 LOG = getLogger()
 
 CONTAINER_MAP = {
-    IjoSiko.CHANNEL: "tomo",
-    IjoSiko.CATEGORY: "kulupu",
+    IjoSiko.ALL: "ale",
     IjoSiko.GUILD: "ma",
+    IjoSiko.CATEGORY: "kulupu tomo",
+    IjoSiko.CHANNEL: "tomo",
+    IjoSiko.THREAD: "tomo lili",
+    IjoSiko.USER: "jan",
 }
 
 PALI_MAP = {Pali.PANA: "pana", Pali.ANTE: "ante", Pali.WEKA: "weka"}
@@ -37,6 +49,29 @@ BANNED_REACTS = [
     "<:report_this_post_to_mods:987869324259754064>",
     "<:report:1162798333002264586>",
 ]
+
+
+def get_verb(action: Pali) -> str:
+    if action == Pali.PANA:
+        return "pana"
+    if action == Pali.ANTE:
+        return "ante"
+    if action == Pali.WEKA:
+        return "weka"
+
+
+def get_noun(item: DiscordContainer | DiscordActor) -> str:
+    if isinstance(item, Guild):
+        return "ma"
+    if isinstance(item, CategoryChannel):
+        return "kulupu tomo"
+    if isinstance(item, MessageableGuildChannel):
+        return "tomo"
+    if isinstance(item, Thread):
+        return "tomo lili"
+    # if isinstance(item, DiscordUser):
+    #     return "jan"
+    return "ijo"
 
 
 def datetime_to_int(t: datetime):
