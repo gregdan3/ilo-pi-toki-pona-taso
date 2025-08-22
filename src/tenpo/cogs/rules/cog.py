@@ -325,7 +325,7 @@ class CogRules(Cog):
 
     @user_rules.command(name="weka", description="o weka e lawa ale sina")
     async def user_delete_rules(self, ctx: ApplicationContext):
-        await cmd_delete_rules(ctx, ctx.user, ephemeral=True)
+        await cmd_delete_all_rules(ctx, ctx.user, ephemeral=True)
 
     @user_rules.command(name="len", description="sina o ken ala ken len e toki?")
     @option(name="len", choices=["ken", "ala"])
@@ -628,7 +628,7 @@ async def cmd_list_rules(ctx: ApplicationContext, actor: DiscordActor, ephemeral
     await ctx.respond(result, ephemeral=ephemeral)
 
 
-async def cmd_delete_rules(
+async def cmd_delete_all_rules(
     ctx: ApplicationContext, actor: DiscordActor, ephemeral: bool
 ):
     guild = ctx.guild
