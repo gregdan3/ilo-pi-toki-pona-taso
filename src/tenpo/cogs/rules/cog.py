@@ -1,6 +1,7 @@
 # STL
 import re
 from typing import Literal, cast
+from datetime import datetime
 
 # PDM
 import emoji
@@ -34,6 +35,7 @@ from tenpo.croniter_utils import (
     InvalidEventTimer,
     parse_delta,
     parse_timezone,
+    parse_delta_safe,
 )
 
 LOG = getLogger()
@@ -120,6 +122,16 @@ class CogRules(Cog):
         assert actor
         lukin = cast(LukinOptions, lukin)
         return await cmd_set_disabled(ctx, actor, lukin, ephemeral=False)
+
+    @guild_rules.command(
+        name="lape", description="mi o lukin ala e toki ma lon tenpo pi suli seme?"
+    )
+    @commands.has_guild_permissions(manage_channels=True)
+    @option(name="tenpo", description="tenpo o suli seme?")
+    async def guild_set_sleep(self, ctx: ApplicationContext, tenpo: str):
+        actor = ctx.guild
+        assert actor
+        return await cmd_set_sleep(ctx, actor, tenpo, ephemeral=False)
 
     @guild_rules.command(name="sin", description="o toki pona taso e seme?")
     @commands.has_guild_permissions(manage_channels=True)
@@ -321,6 +333,13 @@ class CogRules(Cog):
         return await cmd_set_disabled(ctx, ctx.user, lukin, ephemeral=True)
 
     @user_rules.command(
+        name="lape", description="mi o lukin ala e toki sina lon tenpo pi suli seme?"
+    )
+    @option(name="tenpo", description="tenpo o suli seme?")
+    async def user_set_sleep(self, ctx: ApplicationContext, tenpo: str):
+        return await cmd_set_sleep(ctx, ctx.user, tenpo, ephemeral=True)
+
+    @user_rules.command(
         name="nasin", description="sina toki pona ala la mi o seme e toki?"
     )
     @option(name="nasin", choices=["sitelen", "weka", "len", "sitelen lili"])
@@ -438,6 +457,26 @@ async def cmd_set_spoilers(
     assert isinstance(allowed, bool)
     await DB.set_spoilers(actor.id, allowed)
     await ctx.respond(resp, ephemeral=ephemeral)
+
+
+async def cmd_set_sleep(
+    ctx: ApplicationContext,
+    actor: DiscordActor,
+    tenpo: str,
+    ephemeral: bool,
+):
+    delta = parse_delta_safe(tenpo)
+    if not delta:
+        await ctx.respond(f"tenpo li pakala: {tenpo}", ephemeral=ephemeral)
+        return
+
+    if delta.total_seconds() <= 0:
+        await DB.set_sleep_int(actor.id, 0)
+        await ctx.respond(f"mi kama lape ala la mi lukin e toki", ephemeral=ephemeral)
+
+    sleep_to = datetime.now() + delta
+    await DB.set_sleep(actor.id, sleep_to)
+    await ctx.respond(f"mi lukin ala e toki li lukin sin lon tenpo ni: {sleep_to}")
 
 
 async def cmd_set_disabled(
