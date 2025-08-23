@@ -1,11 +1,10 @@
 # STL
-import re
 import random
 from typing import Any, Optional, cast
 
 # PDM
 import discord
-from discord import Bot, Member, Thread, AllowedMentions
+from discord import Bot, Member, Thread, MessageType, AllowedMentions
 from discord.ext import commands
 from discord.message import Message
 from discord.reaction import Reaction
@@ -25,6 +24,11 @@ UNKNOWN_EMOJI_ERR_CODE = 10014
 RESEND_MENTIONS = AllowedMentions(
     everyone=False, users=False, roles=False, replied_user=False
 )
+
+ALLOWED_MESSAGE_TYPES = {
+    MessageType.default,
+    MessageType.reply,
+}
 
 
 def user_has_role(user: Member, role: int) -> bool:
@@ -76,6 +80,10 @@ async def should_check(message: Message) -> bool:
 
     guild = message.guild
     if not guild:
+        return False
+
+    msg_type = message.type
+    if msg_type not in ALLOWED_MESSAGE_TYPES:
         return False
 
     # if a message is ever sent in a non-channel, how
