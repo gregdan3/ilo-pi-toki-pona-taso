@@ -1,6 +1,7 @@
 # STL
 import enum
 from typing import Any, Set, Dict, List, Tuple, Literal, Optional, TypeAlias, cast
+from datetime import datetime
 from contextlib import asynccontextmanager
 
 # PDM
@@ -106,21 +107,22 @@ class IjoSiko(enum.Enum):
 
 class ConfigKey(enum.Enum):
     # user only
-    REACTS = "reacts"
-    OPENS = "opens"
-    RESPONSE = "response"
+    REACTS = "reacts"  # emoji used to tell user they did not speak tp
+    OPENS = "opens"  # if message starts with one of these, ignore (guild overrides)
+    RESPONSE = "response"  # how to respond to user's message
 
     # guild only
-    ROLE = "role"
+    ROLE = "role"  # if set, only check guild messages from users who opted in
     CALENDAR = "calendar"  # moon calendar channel
-    CRON = "cron"  # cron string
-    LENGTH = "length"  # timedelta
-    TIMING = "timer"  # timing method (cron, ale, ala)
-    TIMEZONE = "timezone"
+    CRON = "cron"  # cron string for events
+    LENGTH = "length"  # length of events
+    TIMING = "timer"  # timing method (cron, ale, ala, moon phase)
+    TIMEZONE = "timezone"  # timezone used to calculate event times
 
     # both
-    DISABLED = "disabled"
-    SPOILERS = "spoilers"
+    DISABLED = "disabled"  # whether the bot looks at messages at all
+    SPOILERS = "spoilers"  # whether the bot looks at spoilers
+    SLEEP = "sleep"  # when to start checking messages again (guild overrides)
 
 
 class ConfigKeyTypes(enum.Enum):
