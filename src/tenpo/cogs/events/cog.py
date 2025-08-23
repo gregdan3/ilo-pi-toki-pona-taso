@@ -18,8 +18,14 @@ the moon is fully dark, so only speak toki pona!
 FULL_MOON_DESC = """mun suli li suno ale la o toki pona taso!
 the moon is fully lit, so only speak toki pona!
 """
+NON_MOON_DESC = """tenpo li kama! o toki pona taso!
+the event has arrived! only speak toki pona!"""
 
-DESCRIPTIONS = {"new": NEW_MOON_DESC, "full": FULL_MOON_DESC}
+DESCRIPTIONS = {
+    "new": NEW_MOON_DESC,
+    "full": FULL_MOON_DESC,
+    "none": NON_MOON_DESC,
+}
 
 
 class CogEvents(Cog):
@@ -43,11 +49,22 @@ async def setup_events(ctx: ApplicationContext, limit: int = 3):
         if event.start_time
     ]
 
-    timer = await DB.get_moon_timer(guild.id)
+    method = await DB.get_timing(guild.id)
+    if method == "mun":
+        timer = await DB.get_moon_timer(guild.id)
+    elif method == "wile":
+        timer = await DB.get_event_timer(guild.id)
+    else:
+        return False
+
     for start, end in timer.get_events_from():
-        phase = timer.get_phase(ref=start)
-        assert phase
-        LOG.info("Making event for phase %s from %s to %s", phase, start, end)
+        LOG.info("Making event from %s to %s", start, end)
+
+        description = DESCRIPTIONS["none"]
+        if method == "mun":
+            phase = timer.get_phase(ref=start)
+            assert phase
+            description = DESCRIPTIONS[phase]
 
         if (NAME, int(start.timestamp())) in starts:
             LOG.warning("Event already scheduled. Not re-creating!")
@@ -56,7 +73,9 @@ async def setup_events(ctx: ApplicationContext, limit: int = 3):
         event = await guild.create_scheduled_event(
             name=NAME,
             location=guild.name,
-            description=DESCRIPTIONS[phase],
+            description=description,
             start_time=start,
             end_time=end,
         )
+
+    return True
