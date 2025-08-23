@@ -1,6 +1,7 @@
 # STL
 import random
 from typing import Any, Optional, cast
+from datetime import datetime, timedelta
 
 # PDM
 import discord
@@ -30,6 +31,8 @@ ALLOWED_MESSAGE_TYPES = {
     MessageType.reply,
 }
 
+MAX_AGE = timedelta(minutes=15)
+
 
 def user_has_role(user: Member, role: int) -> bool:
     return not not user.get_role(role)
@@ -49,8 +52,10 @@ class CogOTokiPonaTaso(Cog):
 
     @commands.Cog.listener("on_message_edit")
     async def toki_li_ante_la(self, before: Message, after: Message):
-        # TODO: switch to message cache in the future
-        # in case future responses no longer react
+        if not await preconditions(before):
+            return
+
+        # TODO: fetch result from message cache
         react = await get_own_react(before)
         resp_before = react is not None
         resp_after = await should_respond(after)
@@ -65,33 +70,35 @@ class CogOTokiPonaTaso(Cog):
             await after.remove_reaction(react, self.bot.user)
 
 
-async def should_check(message: Message) -> bool:
+async def preconditions(message: Message) -> bool:
     """
     Determine if a message is worth checking.
-    - The user must not be a bot (see TODO)
-    - The message must be in a guild
-    - The message must be in a channel
-    - The message must be from the last 1hr (see TODO)
+    - Author must not be a bot (see TODO)
+    - Message must be in a guild
+    - Message must be in a channel
+    - Message must be normal or a reply
+    - Message must be within the last MAX_AGE
     """
     if message.author.bot:
         # TODO: exclude bots, but not pluralkit? they share a per-server id from the webhook
         # https://pluralkit.me/api/endpoints/#get-proxied-message-information
         return False
 
-    guild = message.guild
-    if not guild:
+    # sent in non-guild (dm)
+    if not message.guild:
         return False
 
-    msg_type = message.type
-    if msg_type not in ALLOWED_MESSAGE_TYPES:
+    # something other than default or reply
+    if message.type not in ALLOWED_MESSAGE_TYPES:
         return False
 
-    # if a message is ever sent in a non-channel, how
-    # channel = message.channel
-    # if not channel:
+    # sent in non-channel (how)
+    # if not message.channel:
     #     return False
 
-    # TODO: if a message is from >1hr ago, we don't care anymore
+    # too old
+    if (datetime.now() - message.created_at) > MAX_AGE:
+        return False
 
     return True
 
@@ -163,7 +170,7 @@ async def should_check_guild(message: Message) -> bool:
 
 
 async def should_respond(message: Message) -> bool:
-    if not await should_check(message):
+    if not await preconditions(message):
         LOG.debug("Ignoring message; preconditions failed")
         return False
 
