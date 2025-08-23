@@ -76,7 +76,7 @@ DEFAULT_REACTS = [
     "🐞",
     "🦋",
 ]
-DEFAULT_RESPONSE = "len"
+DEFAULT_RESPONSE = "sitelen"
 DEFAULT_TIMER = "ala"
 DEFAULT_TIMEZONE = "UTC"
 DEFAULT_CRON = "0 0 * * 6"
