@@ -1,7 +1,7 @@
 # STL
 import re
 from typing import Literal, cast
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # PDM
 import emoji
@@ -23,6 +23,7 @@ from tenpo.str_utils import (
     format_timing_data,
     get_discord_reacts,
     format_reacts_rules,
+    discord_fmt_datetime,
     format_rules_exceptions,
     format_reacts_management,
     format_removed_role_info,
@@ -42,6 +43,8 @@ LOG = getLogger()
 
 LukinOptions = Literal["lukin", "ala"]
 SpoilerOptions = Literal["ken", "ala"]
+
+MAX_SLEEP = timedelta(days=1)
 
 
 # TODO: generate these functions
@@ -127,7 +130,10 @@ class CogRules(Cog):
         name="lape", description="mi o lukin ala e toki ma lon tenpo pi suli seme?"
     )
     @commands.has_guild_permissions(manage_channels=True)
-    @option(name="tenpo", description="tenpo o suli seme?")
+    @option(
+        name="tenpo",
+        description="tenpo o suli seme? (ken: 24h, 90m, 3d, 0m. 0m la mi weka e lape.)",
+    )
     async def guild_set_sleep(self, ctx: ApplicationContext, tenpo: str):
         actor = ctx.guild
         assert actor
@@ -227,7 +233,8 @@ class CogRules(Cog):
         except InvalidEventTimer as e:
             await ctx.respond(
                 "%s\no lukin e ale: \n`%s` \n`%s` \n`%s`\n\nsina wile e sona pi ilo Cron la o lukin e ni: <https://crontab.guru/>"
-                % (e, cron, nasin_tenpo_ma, suli_tenpo)
+                % (e, cron, nasin_tenpo_ma, suli_tenpo),
+                ephemeral=True,
             )
             return
 
@@ -236,7 +243,7 @@ class CogRules(Cog):
         if prospective_dates[0][1] > prospective_dates[1][0]:  # TODO: this sucks
             resp = "pakala li ken la mi pana ala! pini tenpo li lon insa pi open tenpo. o lukin: \n"
             resp += formatted
-            await ctx.respond(resp)
+            await ctx.respond(resp, ephemeral=True)
             return
 
         resp = "mi pana la tenpo kama li ni: \n"
@@ -268,7 +275,7 @@ class CogRules(Cog):
         try:
             delta = parse_delta(suli_tenpo, must_be_positive=True)
         except InvalidDelta as e:
-            await ctx.respond(e)
+            await ctx.respond(e, ephemeral=True)
             return
 
         await DB.set_length(ma.id, suli_tenpo)
@@ -335,7 +342,10 @@ class CogRules(Cog):
     @user_rules.command(
         name="lape", description="mi o lukin ala e toki sina lon tenpo pi suli seme?"
     )
-    @option(name="tenpo", description="tenpo o suli seme?")
+    @option(
+        name="tenpo",
+        description="tenpo o suli seme? (ken: 24h, 90m, 3d, 0m. 0m la mi weka e lape.)",
+    )
     async def user_set_sleep(self, ctx: ApplicationContext, tenpo: str):
         return await cmd_set_sleep(ctx, ctx.user, tenpo, ephemeral=True)
 
@@ -466,17 +476,28 @@ async def cmd_set_sleep(
     ephemeral: bool,
 ):
     delta = parse_delta_safe(tenpo)
-    if not delta:
-        await ctx.respond(f"tenpo li pakala: {tenpo}", ephemeral=ephemeral)
+    if delta is None:
+        await ctx.respond(f"sitelen tenpo ni li pakala: {tenpo}", ephemeral=ephemeral)
         return
 
-    if delta.total_seconds() <= 0:
+    if delta.total_seconds() < 30:
         await DB.set_sleep_int(actor.id, 0)
-        await ctx.respond(f"mi kama lape ala la mi lukin e toki", ephemeral=ephemeral)
+        await ctx.respond(f"mi kama lape ala li lukin e toki", ephemeral=ephemeral)
+        return
+
+    if delta > MAX_SLEEP:
+        await ctx.respond(
+            f"tenpo lape `{tenpo}` li suli ike. ken la o kepeken `/lawa lukin`",
+            ephemeral=ephemeral,
+        )
+        return
 
     sleep_to = datetime.now() + delta
     await DB.set_sleep(actor.id, sleep_to)
-    await ctx.respond(f"mi lukin ala e toki li lukin sin lon tenpo ni: {sleep_to}")
+    await ctx.respond(
+        f"mi lape li kama lukin sin e toki lon tenpo ni: {discord_fmt_datetime(sleep_to)}",
+        ephemeral=ephemeral,
+    )
 
 
 async def cmd_set_disabled(
