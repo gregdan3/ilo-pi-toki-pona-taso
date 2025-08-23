@@ -221,7 +221,6 @@ async def react_message(message: Message):
             LOG.warning("Couldn't react %s to user %s", react, message.author.name)
             await send_react_error_dm(message, react)
             result = await DB.delete_react(uid, react)
-            # loop
 
     # TODO: i should probably inform user if we get here.
     # but also, fuck's sake, what

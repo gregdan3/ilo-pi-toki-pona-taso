@@ -1,5 +1,4 @@
 # STL
-import enum
 from typing import TypedDict, cast
 
 # PDM
@@ -15,7 +14,6 @@ from discord import (
     ui,
 )
 from discord.ui import View, Button, Select
-from typing_extensions import override
 
 # LOCAL
 from tenpo.db import Pali, IjoSiko
