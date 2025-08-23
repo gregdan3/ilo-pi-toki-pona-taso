@@ -85,6 +85,7 @@ DEFAULT_LENGTH = "24h"
 DEFAULT_SPOILERS = True
 DEFAULT_DISABLED = False
 DEFAULT_OPENS = []
+DEFAULT_PAUSE = 45
 
 
 class Pali(enum.Enum):
@@ -107,9 +108,11 @@ class IjoSiko(enum.Enum):
 
 class ConfigKey(enum.Enum):
     # user only
-    REACTS = "reacts"  # emoji used to tell user they did not speak tp
-    OPENS = "opens"  # if message starts with one of these, ignore (guild overrides)
     RESPONSE = "response"  # how to respond to user's message
+    OPENS = "opens"  # if message starts with one of these, ignore (guild overrides)
+
+    REACTS = "reacts"  # 'sitelen' responses: emoji list
+    PAUSE = "pause"  # 'sitelen lili' response: delay between checks
 
     # guild only
     ROLE = "role"  # if set, only check guild messages from users who opted in
@@ -327,7 +330,7 @@ class TenpoDB:
 
     async def get_sleep(self, eid: int) -> int:
         return cast(
-            bool,
+            int,
             await self.__get_config_item(eid, ConfigKey.SLEEP, default=0),
         )
 
@@ -335,6 +338,15 @@ class TenpoDB:
         now = datetime.now().timestamp()
         sleep = await self.get_sleep(eid)
         return now < sleep
+
+    async def set_pause(self, eid: int, pause: int):
+        await self.__set_config_item(eid, ConfigKey.PAUSE, pause, default=DEFAULT_PAUSE)
+
+    async def get_pause(self, eid: int) -> int:
+        return cast(
+            int,
+            await self.__get_config_item(eid, ConfigKey.SLEEP, default=0),
+        )
 
     async def set_disabled(self, eid: int, disabled: bool):
         await self.__set_config_item(eid, ConfigKey.DISABLED, disabled)

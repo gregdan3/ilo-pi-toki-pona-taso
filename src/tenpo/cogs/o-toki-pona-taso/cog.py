@@ -227,6 +227,15 @@ async def react_message(message: Message):
     # but also, fuck's sake, what
 
 
+async def react_then_sleep(message: Message):
+    eid = message.author.id
+    await react_message(message)
+
+    pause = await DB.get_pause(eid)
+    sleep_to = datetime.now() + timedelta(seconds=pause)
+    await DB.set_sleep(eid, sleep_to)
+
+
 async def delete_message(message: Message, dm: bool = True):
     LOG.debug("Deleting user message")
     try:
@@ -287,5 +296,5 @@ RESPONSE_MAP = {
     "sitelen": react_message,
     "weka": delete_message,
     "len": resend_message,
-    "sitelen lili": react_message,  # TODO: version of this that is cache-aware
+    "sitelen lili": react_then_sleep,
 }
