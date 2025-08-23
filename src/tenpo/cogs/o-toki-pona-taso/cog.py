@@ -97,19 +97,19 @@ async def should_check(message: Message) -> bool:
 
 
 async def should_check_user(message: Message) -> bool:
-    if not message.guild:
+    channel, guild, author = message.channel, message.guild, message.author
+    if await DB.get_disabled(author.id):
+        LOG.debug("Ignoring user message; disabled")
         return False
 
-    channel, guild = message.channel, message.guild
-    if await DB.get_disabled(message.author.id):
-        LOG.debug("Ignoring user message; user has disabled")
+    if await DB.is_sleeping(author.id):
+        LOG.debug("Ignoring user message; sleeping")
         return False
 
     channel_id = channel.parent_id if isinstance(channel, Thread) else channel.id
     thread_id = channel.id if isinstance(channel, Thread) else None
-
     if not await DB.in_checked_channel(
-        message.author.id,
+        author.id,
         thread_id,
         channel_id,
         channel.category_id,
@@ -119,7 +119,7 @@ async def should_check_user(message: Message) -> bool:
         return False
 
     # NOTE: guild rules override this! this is intentional
-    if await DB.startswith_ignorable(message.author.id, message.content):
+    if await DB.startswith_ignorable(author.id, message.content):
         LOG.debug("Ignoring user message; starts with ignorable")
         return False
 
@@ -127,28 +127,28 @@ async def should_check_user(message: Message) -> bool:
 
 
 async def should_check_guild(message: Message) -> bool:
-    if not message.guild:
-        return False
-
-    channel, guild = message.channel, message.guild
+    channel, guild, author = message.channel, message.guild, message.author
+    assert guild
     if await DB.get_disabled(guild.id):
-        LOG.debug("Ignoring guild message; guild has disabled")
+        LOG.debug("Ignoring guild message; disabled")
         return False
 
-    channel_id = channel.parent_id if isinstance(channel, Thread) else channel.id
-    thread_id = channel.id if isinstance(channel, Thread) else None
+    if await DB.is_sleeping(guild.id):
+        LOG.debug("Ignoring guild message; sleeping")
+        return False
 
     if not await DB.is_event_time(guild.id):
         LOG.debug("Ignoring guild message; not event time")
         return False
 
+    # if guild set a role, check users with the role; else, check all users
     if role := await DB.get_role(guild.id):
-        # if guild set a role, check users with the role; else, check all users
-        if not user_has_role(cast(Member, message.author), role):
+        if not user_has_role(cast(Member, author), role):
             LOG.debug("Ignoring guild message; user missing role")
             return False
 
-    cast(DiscordContainer, message.channel)
+    channel_id = channel.parent_id if isinstance(channel, Thread) else channel.id
+    thread_id = channel.id if isinstance(channel, Thread) else None
     if not await DB.in_checked_channel(
         guild.id,
         thread_id,
@@ -156,7 +156,7 @@ async def should_check_guild(message: Message) -> bool:
         channel.category_id,
         guild.id,
     ):
-        LOG.debug("Ignoring guild message; not in configured channel")
+        LOG.debug("Ignoring guild message; not in checked channel")
         return False
 
     return True
