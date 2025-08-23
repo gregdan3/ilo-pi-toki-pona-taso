@@ -1,6 +1,3 @@
-# STL
-import datetime
-
 # PDM
 from discord.ext import commands
 from discord.guild import Guild
@@ -11,7 +8,6 @@ from discord.commands.context import ApplicationContext
 # LOCAL
 from tenpo.__main__ import DB
 from tenpo.log_utils import getLogger
-from tenpo.phase_utils import major_phases_from_now
 
 LOG = getLogger()
 
@@ -40,31 +36,27 @@ class CogEvents(Cog):
 async def setup_events(ctx: ApplicationContext, limit: int = 3):
     # TODO: this should be a repeating event that checks the server for set configuration
     guild: Guild = ctx.guild
-    channel: TextChannel = ctx.channel
-
-    if not isinstance(channel, TextChannel):
-        return
 
     starts = [
-        (event.name, event.start_time.timestamp())
+        (event.name, int(event.start_time.timestamp()))
         for event in guild.scheduled_events
         if event.start_time
     ]
 
-    for dtime, phase in major_phases_from_now(limit):
-        dtime = dtime.utc_datetime()
-        LOG.info("Constructing event for phase %s at time %s", phase, dtime)
+    timer = await DB.get_moon_timer(guild.id)
+    for start, end in timer.get_events_from():
+        phase = timer.get_phase(ref=start)
+        assert phase
+        LOG.info("Making event for phase %s from %s to %s", phase, start, end)
 
-        if (NAME, dtime.timestamp()) in starts:
+        if (NAME, int(start.timestamp())) in starts:
             LOG.warning("Event already scheduled. Not re-creating!")
             continue
 
-        # Create the event in the guild
         event = await guild.create_scheduled_event(
             name=NAME,
             location=guild.name,
             description=DESCRIPTIONS[phase],
-            start_time=dtime,
-            end_time=dtime + datetime.timedelta(hours=24),
-            # image=image,  # TODO: add images
+            start_time=start,
+            end_time=end,
         )

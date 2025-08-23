@@ -1,7 +1,7 @@
 # STL
 import typing
 from math import floor
-from typing import Tuple, Literal, Optional, Generator, cast
+from typing import Literal, Optional, Generator, cast
 from datetime import datetime, timedelta
 
 # PDM
@@ -125,7 +125,7 @@ def is_major_phase() -> bool:
 
 def major_phases_from(
     start: datetime, limit: Optional[int] = None
-) -> Generator[Tuple[Time, Phase], None, None]:
+) -> Generator[tuple[Time, Phase], None, None]:
     """return consecutive major phases starting from the given time, plus which phase it is as a string"""
     delta = timedelta(days=PHASE_LEN_DAYS_REAL) / 2
 
@@ -156,7 +156,7 @@ def major_phases_from(
 
 def major_phases_from_now(
     limit: Optional[int] = None,
-) -> Generator[Tuple[Time, Phase], None, None]:
+) -> Generator[tuple[Time, Phase], None, None]:
     now = now_skyfield()
     yield from major_phases_from(now, limit)
 
@@ -211,7 +211,7 @@ class PhaseTimer:
         self,
         n: int = 3,
         ref: datetime | None = None,
-    ) -> Generator[Tuple[datetime, datetime], None, None]:
+    ) -> Generator[tuple[datetime, datetime], None, None]:
         if not ref:
             ref = datetime.now(tz=self.__tz)
         for _ in range(n):
@@ -225,3 +225,14 @@ class PhaseTimer:
             ref = datetime.now(tz=self.__tz)
         start, end = self.get_prev_range(ref)
         return start <= ref < end
+
+    def get_phase(self, ref: datetime | None = None) -> Phase | None:
+        if not ref:
+            ref = datetime.now(tz=self.__tz)
+        start, end = self.get_prev_range(ref)
+        start -= timedelta(minutes=5)
+        end += timedelta(minutes=5)
+        if not start <= ref < end:
+            return None
+        events = self.__find_moon_events(start, end)
+        return PHASES[events[0][1] // 2]
