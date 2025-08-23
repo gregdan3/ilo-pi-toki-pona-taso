@@ -51,6 +51,24 @@ def parse_delta(delta_str: str, must_be_positive: bool = False) -> timedelta:
     return delta
 
 
+def parse_delta_safe(
+    delta_str: str,
+    must_be_positive: bool = False,
+) -> timedelta | None:
+    if not delta_str:
+        return None
+    delta = timeparse(delta_str, granularity="minutes")
+
+    if not isinstance(delta, int):
+        return None
+
+    if must_be_positive and delta <= 0:
+        return None
+
+    delta = timedelta(seconds=delta)
+    return delta
+
+
 def parse_timezone(tz_str: str) -> ValidTZ:
     if not tz_str:
         raise InvalidTZ(tz_str)
