@@ -1,7 +1,7 @@
 # STL
 import random
 from typing import Any, Optional, cast
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 # PDM
 import discord
@@ -82,14 +82,17 @@ async def preconditions(message: Message) -> bool:
     if message.author.bot:
         # TODO: exclude bots, but not pluralkit? they share a per-server id from the webhook
         # https://pluralkit.me/api/endpoints/#get-proxied-message-information
+        LOG.debug("Ignoring message; author is bot")
         return False
 
     # sent in non-guild (dm)
     if not message.guild:
+        LOG.debug("Ignoring message; not in guild")
         return False
 
     # something other than default or reply
     if message.type not in ALLOWED_MESSAGE_TYPES:
+        LOG.debug("Ignoring message; wrong type")
         return False
 
     # sent in non-channel (how)
@@ -97,7 +100,8 @@ async def preconditions(message: Message) -> bool:
     #     return False
 
     # too old
-    if (datetime.now() - message.created_at) > MAX_AGE:
+    if (datetime.now(UTC) - message.created_at) > MAX_AGE:
+        LOG.debug("Ignoring message; too old")
         return False
 
     return True
@@ -171,7 +175,7 @@ async def should_check_guild(message: Message) -> bool:
 
 async def should_respond(message: Message) -> bool:
     if not await preconditions(message):
-        LOG.debug("Ignoring message; preconditions failed")
+        # LOG.debug("Ignoring message; preconditions failed")
         return False
 
     if await should_check_guild(message):
