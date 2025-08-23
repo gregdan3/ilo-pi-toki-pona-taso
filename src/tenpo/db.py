@@ -319,6 +319,23 @@ class TenpoDB:
             await self.__get_config_item(eid, ConfigKey.SPOILERS, DEFAULT_SPOILERS),
         )
 
+    async def set_sleep_int(self, eid: int, sleep: int):
+        await self.__set_config_item(eid, ConfigKey.SLEEP, sleep)
+
+    async def set_sleep(self, eid: int, sleep: datetime):
+        await self.__set_config_item(eid, ConfigKey.SLEEP, int(sleep.timestamp()))
+
+    async def get_sleep(self, eid: int) -> int:
+        return cast(
+            bool,
+            await self.__get_config_item(eid, ConfigKey.SLEEP, default=0),
+        )
+
+    async def is_sleeping(self, eid: int) -> bool:
+        now = datetime.now().timestamp()
+        sleep = await self.get_sleep(eid)
+        return now < sleep
+
     async def set_disabled(self, eid: int, disabled: bool):
         await self.__set_config_item(eid, ConfigKey.DISABLED, disabled)
 
