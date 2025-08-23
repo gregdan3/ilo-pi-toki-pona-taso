@@ -254,7 +254,7 @@ class CogRules(Cog):
         assert ma
 
         try:
-            parse_delta(suli_tenpo)
+            delta = parse_delta(suli_tenpo, must_be_positive=True)
         except InvalidDelta as e:
             await ctx.respond(e)
             return

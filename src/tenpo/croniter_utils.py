@@ -35,12 +35,18 @@ class InvalidDelta(InvalidEventTimer):
         super().__init__("suli tenpo li pakala: `%s`" % delta)
 
 
-def parse_delta(delta_str: str) -> timedelta:
+def parse_delta(delta_str: str, must_be_positive: bool = False) -> timedelta:
     if not delta_str:
         raise InvalidDelta(delta_str)
+
     delta = timeparse(delta_str, granularity="minutes")
-    if not isinstance(delta, int) or not delta > 0:
+
+    if not isinstance(delta, int):
         raise InvalidDelta(delta_str)
+
+    if must_be_positive and delta <= 0:
+        raise InvalidDelta(delta_str)
+
     delta = timedelta(seconds=delta)
     return delta
 
