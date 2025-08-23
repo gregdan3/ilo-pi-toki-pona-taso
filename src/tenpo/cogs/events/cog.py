@@ -31,7 +31,7 @@ class CogEvents(Cog):
         self.bot = bot
 
     @slash_command(name="setup_events")
-    @commands.has_permissions(administrator=True)
+    @commands.has_permissions(manage_channels=True)
     async def slash_setup(self, ctx: ApplicationContext, limit: int = 3):
         await setup_events(ctx, limit)
         await ctx.respond(content="Set up events!", ephemeral=True)
