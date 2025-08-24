@@ -19,9 +19,9 @@ async def get_calendar_title(eid: int) -> str:
     # TODO: nimi li ken ante
     title = "mun tenpo"
     phase_emoji = current_emoji()
+    timing = await DB.get_timing(eid)
     is_event_time = await DB.is_event_time(eid)
-    response = await DB.get_response(eid)
-    if is_event_time and response == "mun":
+    if timing == "mun" and is_event_time:
         phase_emoji = FACE_MAP[phase_emoji]
         title = "o toki pona taso"
     title = f"{phase_emoji} {title}"
@@ -57,7 +57,7 @@ class CogPhaseCalendar(Cog):
             LOG.warning("Channel %s may not be edited", channel)
         return True
 
-    @tasks.loop(minutes=30)
+    @tasks.loop(minutes=15)
     async def moon_calendar(self):
         channel = None
         channel_id = None
