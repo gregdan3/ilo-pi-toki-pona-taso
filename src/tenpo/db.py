@@ -1,6 +1,6 @@
 # STL
 import enum
-from typing import Any, Set, Dict, List, Tuple, Literal, Optional, TypeAlias, cast
+from typing import Any, Literal, Optional, TypeAlias, cast
 from datetime import datetime
 from contextlib import asynccontextmanager
 
@@ -78,7 +78,7 @@ DEFAULT_REACTS = [
     "🦋",
 ]
 DEFAULT_RESPONSE = "sitelen"
-DEFAULT_TIMER = "ala"
+DEFAULT_TIMING = "ala"
 DEFAULT_TIMEZONE = "UTC"
 DEFAULT_CRON = "0 0 * * 6"
 DEFAULT_LENGTH = "24h"
@@ -129,8 +129,8 @@ class ConfigKey(enum.Enum):
 
 
 class ConfigKeyTypes(enum.Enum):
-    REACTS = List[str]
-    OPENS = List[str]
+    REACTS = list[str]
+    OPENS = list[str]
     RESPONSE = Literal["sitelen", "weka", "len", "sitelen lili"]
 
     ROLE = int  # role id
@@ -151,7 +151,7 @@ class NasinTenpo(enum.Enum):
     WILE = "wile"
 
 
-Lawa = Dict[IjoSiko, Set[int]]
+Lawa = dict[IjoSiko, set[int]]
 IjoPiLawaKen = [
     IjoSiko.ALL,
     IjoSiko.GUILD,
@@ -261,7 +261,7 @@ class TenpoDB:
 
     async def __get_config_item(
         self, eid: int, key: ConfigKey, default: Any = None
-    ) -> Optional[JSONType]:
+    ) -> JSONType | None:
         config = await self.__get_config(eid)
         item = config.get(key.value, default) if config else default
         if isinstance(item, list) and not item:
@@ -295,12 +295,12 @@ class TenpoDB:
                 resp = await self.upsert_rule(id, ctype, eid, True)
                 assert resp == Pali.WEKA, (id, ctype, eid, True, resp)
 
-    async def set_reacts(self, eid: int, reacts: List[str]):
+    async def set_reacts(self, eid: int, reacts: list[str]):
         await self.__set_config_item(eid, ConfigKey.REACTS, reacts)
 
-    async def get_reacts(self, eid: int) -> List[str]:
+    async def get_reacts(self, eid: int) -> list[str]:
         return cast(
-            List[str],
+            list[str],
             await self.__get_config_item(eid, ConfigKey.REACTS, DEFAULT_REACTS),
         )
 
@@ -357,9 +357,9 @@ class TenpoDB:
             await self.__get_config_item(eid, ConfigKey.DISABLED, DEFAULT_DISABLED),
         )
 
-    async def get_opens(self, eid: int) -> List[str]:
+    async def get_opens(self, eid: int) -> list[str]:
         opens = cast(
-            List[str], await self.__get_config_item(eid, ConfigKey.OPENS, DEFAULT_OPENS)
+            list[str], await self.__get_config_item(eid, ConfigKey.OPENS, DEFAULT_OPENS)
         )
         return opens
 
@@ -373,10 +373,10 @@ class TenpoDB:
         await self.__set_config_item(eid, ConfigKey.OPENS, opens)
         return not is_in
 
-    async def get_role(self, eid: int) -> Optional[int]:
-        return await self.__get_config_item(eid, ConfigKey.ROLE)
+    async def get_role(self, eid: int) -> int | None:
+        return cast(int, await self.__get_config_item(eid, ConfigKey.ROLE))
 
-    async def set_role(self, eid: int, role: Optional[int]):
+    async def set_role(self, eid: int, role: int | None):
         return await self.__set_config_item(eid, ConfigKey.ROLE, role)
 
     async def toggle_role(self, eid: int, role: int) -> bool:
@@ -411,10 +411,12 @@ class TenpoDB:
         return await self.__set_config_item(eid, ConfigKey.LENGTH, length)
 
     async def get_timing(self, eid: int) -> str:  # DEFAULT: never
-        return await self.__get_config_item(eid, ConfigKey.TIMING, DEFAULT_TIMER)
+        return cast(
+            str, await self.__get_config_item(eid, ConfigKey.TIMING, DEFAULT_TIMING)
+        )
 
-    async def set_timing(self, eid: int, timer: str):
-        return await self.__set_config_item(eid, ConfigKey.TIMING, timer)
+    async def set_timing(self, eid: int, timing: str):
+        return await self.__set_config_item(eid, ConfigKey.TIMING, timing)
 
     async def get_event_timer(self, eid: int) -> EventTimer:
         c = await self.get_cron(eid)
@@ -435,10 +437,10 @@ class TenpoDB:
     async def set_response(self, eid: int, response: str):
         return await self.__set_config_item(eid, ConfigKey.RESPONSE, response)
 
-    async def get_calendar(self, eid: int) -> Optional[int]:
+    async def get_calendar(self, eid: int) -> int | None:
         return cast(int, await self.__get_config_item(eid, ConfigKey.CALENDAR))
 
-    async def set_calendar(self, eid: int, calendar: Optional[int]):
+    async def set_calendar(self, eid: int, calendar: int | None):
         return await self.__set_config_item(eid, ConfigKey.CALENDAR, calendar)
 
     async def get_calendars(self) -> dict[int, int]:
@@ -544,7 +546,7 @@ class TenpoDB:
             await self.__delete_rule(s, id, ctype, eid)
             return Pali.WEKA
 
-    async def list_rules(self, eid: int) -> Tuple[Lawa, Lawa]:
+    async def list_rules(self, eid: int) -> tuple[Lawa, Lawa]:
         async with self.session() as s:
             stmt = select(Rules).where(Rules.eid == eid)
             result = await s.execute(stmt)
@@ -590,15 +592,15 @@ class TenpoDB:
         return bool(rules[IjoSiko.ALL])
 
     async def is_event_time(self, eid: int) -> bool:
-        timing_method = await self.get_timing(eid)
-        if timing_method == "ale":
+        timing = await self.get_timing(eid)
+        if timing == "ale":
             return True
-        elif timing_method == "ala":
+        elif timing == "ala":
             return False
-        elif timing_method == "mun":
+        elif timing == "mun":
             timer = await self.get_moon_timer(eid)
             return timer.is_event_on()
-        elif timing_method == "wile":
+        elif timing == "wile":
             timer = await self.get_event_timer(eid)
             return timer.is_event_on()
         return False
