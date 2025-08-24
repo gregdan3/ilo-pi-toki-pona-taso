@@ -1,18 +1,18 @@
 # STL
+import io
 import random
 from typing import Any, Optional, cast
 from datetime import UTC, datetime, timedelta
 
 # PDM
 import discord
-from discord import Bot, Member, Thread, MessageType, AllowedMentions
+from discord import Bot, File, Member, Thread, MessageType, AllowedMentions
 from discord.ext import commands
 from discord.message import Message
 from discord.reaction import Reaction
 from discord.ext.commands import Cog
 
 # LOCAL
-from tenpo.types import DiscordContainer
 from tenpo.__main__ import DB
 from tenpo.log_utils import getLogger
 from tenpo.str_utils import prep_msg_for_resend
@@ -262,10 +262,17 @@ async def resend_message(message: Message):
     if message.reference:
         kwargs["reference"] = message.reference
 
-    # if message.attachments:
-    #     ex = message.attachments[0]
-    #     ex.waveform
-    #     kwargs["file"] =
+    files: list[File] = []
+    for attachment in message.attachments:
+        try:
+            data = await attachment.read()
+            spoiler_name = f"SPOILER_{attachment.filename}"
+            files.append(File(fp=io.BytesIO(data), filename=spoiler_name))
+        except discord.errors.HTTPException as e:
+            LOG.error(f"Failed to fetch attachment {attachment.filename}: {e}")
+
+    if files:
+        kwargs["files"] = files
 
     # we will resend, so no DM needed
     await delete_message(message, dm=False)
@@ -273,6 +280,8 @@ async def resend_message(message: Message):
         _ = await message.channel.send(reply, **kwargs)
     except discord.errors.Forbidden:
         LOG.error("Couldn't re-send message; disallowed")
+    except discord.errors.NotFound:
+        LOG.error("Couldn't resend message; channel is gone?")
     except discord.errors.HTTPException as e:
         LOG.error("Couldn't re-send message due to unexpected exception!")
         LOG.error(f"Error code: {e.code}")
