@@ -428,13 +428,15 @@ class TenpoDB:
         return PhaseTimer(t, d)
 
     async def get_response(self, eid: int) -> str:  # DEFAULT: react
-        return await self.__get_config_item(eid, ConfigKey.RESPONSE, DEFAULT_RESPONSE)
+        return cast(
+            str, await self.__get_config_item(eid, ConfigKey.RESPONSE, DEFAULT_RESPONSE)
+        )
 
     async def set_response(self, eid: int, response: str):
         return await self.__set_config_item(eid, ConfigKey.RESPONSE, response)
 
     async def get_calendar(self, eid: int) -> Optional[int]:
-        return await self.__get_config_item(eid, ConfigKey.CALENDAR)
+        return cast(int, await self.__get_config_item(eid, ConfigKey.CALENDAR))
 
     async def set_calendar(self, eid: int, calendar: Optional[int]):
         return await self.__set_config_item(eid, ConfigKey.CALENDAR, calendar)
