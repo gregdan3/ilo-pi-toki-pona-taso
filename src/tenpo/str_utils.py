@@ -162,7 +162,7 @@ def format_guild(id: int):
 def format_rules(rules: Lawa, prefix: str):
     rules_str = prefix + ": \n"
     for ijo in IjoPiLawaKen:
-        if not rules[ijo]:
+        if not rules.get(ijo):
             continue
 
         rules_str += "  " + CONTAINER_MAP[ijo] + "\n"
