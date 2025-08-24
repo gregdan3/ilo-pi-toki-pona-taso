@@ -71,7 +71,7 @@ class CogPhaseCalendar(Cog):
 
                 result = await self.edit_channel(channel, title)
                 if result:
-                    LOG.info("Updated channel %s to %s", channel_id, channel)
+                    LOG.info("Channel %s (%s) now %s", channel, channel_id, title)
 
             except discord.errors.NotFound as e:
                 LOG.warning("Channel %s may no longer exist", channel_id)
