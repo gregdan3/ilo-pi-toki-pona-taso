@@ -340,12 +340,12 @@ class TenpoDB:
         return now < sleep
 
     async def set_pause(self, eid: int, pause: int):
-        await self.__set_config_item(eid, ConfigKey.PAUSE, pause, default=DEFAULT_PAUSE)
+        await self.__set_config_item(eid, ConfigKey.PAUSE, pause)
 
     async def get_pause(self, eid: int) -> int:
         return cast(
             int,
-            await self.__get_config_item(eid, ConfigKey.SLEEP, default=0),
+            await self.__get_config_item(eid, ConfigKey.PAUSE, default=DEFAULT_PAUSE),
         )
 
     async def set_disabled(self, eid: int, disabled: bool):
