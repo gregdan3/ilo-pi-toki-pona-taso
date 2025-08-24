@@ -19,11 +19,11 @@ from tenpo.str_utils import (
     format_response,
     format_cron_data,
     format_role_info,
+    format_timestamp,
     format_opens_user,
     format_date_ranges,
     format_timing_data,
     get_discord_reacts,
-    discord_fmt_datetime,
     format_rules_exceptions,
     format_reacts_management,
     format_removed_role_info,
@@ -499,7 +499,7 @@ async def cmd_set_sleep(
     sleep_to = datetime.now() + delta
     await DB.set_sleep(actor.id, sleep_to)
     await ctx.respond(
-        f"mi lape li kama lukin sin e toki lon tenpo ni: {discord_fmt_datetime(sleep_to)}",
+        f"mi lape li kama lukin sin e toki lon tenpo ni: {format_timestamp(sleep_to)}",
         ephemeral=ephemeral,
     )
 
@@ -539,21 +539,28 @@ async def cmd_list_rules(ctx: ApplicationContext, actor: DiscordActor, ephemeral
     assert user
 
     is_guild = isinstance(actor, Guild)
+    prefix = "/lawa"
+    if is_guild:
+        prefix = "/lawa_ma"
 
-    blurbs = []
+    blurbs: list[str] = []
 
     disabled = await DB.get_disabled(actor.id)
     if disabled:
-        disabled_info = (
-            "**mi lukin ala e toki.** sina wile ante e ni la o kepeken `/lawa lukin`."
-        )
+        disabled_info = f"**wile sina la mi lukin ala e toki.** sina wile e lukin la o kepeken `{prefix} lukin`."
         blurbs.append(disabled_info)
+
+    sleeping = await DB.is_sleeping(actor.id)
+    if sleeping:
+        sleep_to = await DB.get_sleep(actor.id)
+        sleeping_info = f"**mi lape tawa tenpo {format_timestamp(sleep_to)} la mi lukin ala e toki.** sina wile ante e ni la o kepeken `{prefix} lape`"
+        blurbs.append(sleeping_info)
 
     # TODO: sort by guild -> category -> channel considering ownership...
     rules, exceptions = await DB.list_rules(actor.id)
     rules_info = format_rules_exceptions(rules, exceptions)
     if not rules_info:
-        rules_info = "**lawa lukin li lon ala** la mi lukin ala e toki sina.\no pana e lawa kepeken `/lawa sin`"
+        rules_info = f"**lawa lukin li lon ala** la mi lukin ala e toki sina.\no pana e lawa kepeken `{prefix} sin`"
 
     blurbs.append(rules_info)
 
@@ -565,7 +572,7 @@ async def cmd_list_rules(ctx: ApplicationContext, actor: DiscordActor, ephemeral
             reacts_info = format_response(response, reacts)
             blurbs.append(reacts_info)
         else:
-            blurbs.append(f"sina toki pona ala la mi {response} e toki sina")
+            blurbs.append(f"sina toki pona ala la mi **{response}** e toki sina")
 
         opens = await DB.get_opens(actor.id)
         if opens:

@@ -7,7 +7,7 @@ from datetime import datetime
 from discord import Guild, Thread, CategoryChannel
 
 # LOCAL
-from tenpo.db import DEFAULT_REACTS, Pali, IjoSiko, IjoPiLawaKen
+from tenpo.db import DEFAULT_REACTS, Lawa, Pali, IjoSiko, IjoPiLawaKen
 from tenpo.types import (
     DiscordUser,
     DiscordActor,
@@ -74,18 +74,20 @@ def get_noun(item: DiscordContainer | DiscordActor) -> str:
     return "ijo"
 
 
-def datetime_to_int(t: datetime):
+def timestamp(t: datetime):
     return int(t.timestamp())
 
 
-def discord_fmt_datetime(t: datetime, fmt: str = "F") -> str:
-    return TIME_FMT % (datetime_to_int(t), fmt)
+def format_timestamp(t: datetime | int, fmt: str = "F") -> str:
+    if isinstance(t, datetime):
+        t = timestamp(t)
+    return TIME_FMT % (t, fmt)
 
 
 def format_date_ranges(ranges: List[Tuple[datetime, datetime]]) -> str:
     resp = ""
     for start, end in ranges:
-        resp += discord_fmt_datetime(start) + " " + discord_fmt_datetime(end) + "\n"
+        resp += format_timestamp(start) + " " + format_timestamp(end) + "\n"
     return resp
 
 
@@ -130,15 +132,10 @@ def format_reacts(reacts: list[str], per_line: int = 8) -> str:
     return formatted_reacts.rstrip()
 
 
-def format_opens(opens: list[str]) -> str:
-    opens = [code_wrap(open) for open in opens]  # TODO: is codeblock fine?
-    return ", ".join(opens)
-
-
 def format_opens_user(opens: list[str]) -> str:
     info = "open pi toki sina li ni la mi lukin ala: \n"
-    f_opens = format_opens(opens)
-
+    f_opens = [code_wrap(open) for open in opens]  # TODO: is codeblock fine?
+    f_opens = ", ".join(opens)
     return info + f_opens
 
 
@@ -162,25 +159,29 @@ def format_guild(id: int):
     return f"<https://discord.com/channels/{id}>"
 
 
-def format_rules(rules, prefix):
+def format_rules(rules: Lawa, prefix: str):
     rules_str = prefix + ": \n"
-    for val in IjoPiLawaKen:
-        if not rules[val]:
+    for ijo in IjoPiLawaKen:
+        if not rules[ijo]:
             continue
 
-        rules_str += "  " + CONTAINER_MAP[val] + "\n"
+        rules_str += "  " + CONTAINER_MAP[ijo] + "\n"
         formatter = format_channel
-        if val == IjoSiko.GUILD:
+        if ijo == IjoSiko.GUILD:
             formatter = format_guild
 
-        for rule in rules[val]:
+        for rule in rules[ijo]:
             rules_str += "    " + formatter(rule) + "\n"
 
     return rules_str
 
 
-def format_rules_exceptions(rules: dict, exceptions: dict):
+def format_rules_exceptions(rules: Lawa, exceptions: Lawa):
     resp = ""
+    if rules[IjoSiko.ALL]:
+        resp += "lawa sina la mi lukin e toki sina **lon ale**.\n"
+    _ = rules.pop(IjoSiko.ALL)
+
     if any([rule for rule in rules.values()]):
         frules = format_rules(rules, "ni o toki pona taso")
         resp += frules
@@ -192,12 +193,10 @@ def format_rules_exceptions(rules: dict, exceptions: dict):
 
 
 def format_response(response: str, reacts: List[str]):
-    formatted_reacts = (
-        format_reacts(reacts) if reacts else format_reacts(DEFAULT_REACTS)
-    )
+    formatted_reacts = format_reacts(reacts)
     message = "sina toki pona ala la mi pana e sitelen ni:\n%s" % formatted_reacts
     if not reacts:
-        message += "\n" + "sina wile e sitelen sina la o kepeken ilo `/lawa sitelen`"
+        message += "\n" + "sina wile pana e sitelen sina la o kepeken `/lawa sitelen`"
     return message
 
 
