@@ -92,7 +92,7 @@ class EnterRule(BaseView):
             SelectOption(label="tomo", description="o lawa e tomo lon ma ni"),
         ]
         if isinstance(actor, Guild):  # guilds cannot assign ale
-            options = options[:2]
+            options = options[1:]
         # TODO: if this is a DM, remove/disable tomo?
 
         self.add_item(self.SelectRuleType(actor, options))
