@@ -191,7 +191,7 @@ def format_rules_exceptions(rules: dict, exceptions: dict):
     return resp
 
 
-def format_reacts_rules(reacts: List[str]):
+def format_response(response: str, reacts: List[str]):
     formatted_reacts = (
         format_reacts(reacts) if reacts else format_reacts(DEFAULT_REACTS)
     )

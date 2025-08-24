@@ -16,13 +16,13 @@ from tenpo.constants import NASIN_PI_MA_ILO, NANPA_PI_JAN_PALI
 from tenpo.log_utils import getLogger
 from tenpo.str_utils import (
     BANNED_REACTS,
+    format_response,
     format_cron_data,
     format_role_info,
     format_opens_user,
     format_date_ranges,
     format_timing_data,
     get_discord_reacts,
-    format_reacts_rules,
     discord_fmt_datetime,
     format_rules_exceptions,
     format_reacts_management,
@@ -85,9 +85,9 @@ class CogRules(Cog):
 
         result = await DB.toggle_role(actor.id, poki.id)
         if result:
-            await ctx.respond(format_role_info(poki.id))
+            await ctx.respond(format_role_info(poki.id), ephemeral=True)
             return
-        await ctx.respond(format_removed_role_info(poki.id))
+        await ctx.respond(format_removed_role_info(poki.id), ephemeral=True)
 
     @guild_rules.command(name="tomo_tenpo", description="tomo seme o pana e sona tenpo")
     @option(name="tomo", description="tomo seme o mun tenpo")
@@ -100,9 +100,13 @@ class CogRules(Cog):
 
         result = await DB.toggle_calendar(actor.id, tomo.id)
         if result:
-            await ctx.respond("kama la mi tenpo e tomo __<#%s>__" % tomo.id)
+            await ctx.respond(
+                "mi kama tenpo e tomo __<#%s>__" % tomo.id, ephemeral=True
+            )
             return
-        await ctx.respond("mi kama lawa ala e tomo __<#%s>__" % tomo.id)
+        await ctx.respond(
+            "mi kama tenpo ala e tomo __<#%s>__" % tomo.id, ephemeral=True
+        )
 
     @guild_rules.command(
         name="len", description="ma ni la jan o ken ala ken len e toki?"
@@ -124,7 +128,7 @@ class CogRules(Cog):
         actor = ctx.guild
         assert actor
         lukin = cast(LukinOptions, lukin)
-        return await cmd_set_disabled(ctx, actor, lukin, ephemeral=False)
+        return await cmd_set_disabled(ctx, actor, lukin, ephemeral=True)
 
     @guild_rules.command(
         name="lape", description="mi o lukin ala e toki ma lon tenpo pi suli seme?"
@@ -137,7 +141,7 @@ class CogRules(Cog):
     async def guild_set_sleep(self, ctx: ApplicationContext, tenpo: str):
         actor = ctx.guild
         assert actor
-        return await cmd_set_sleep(ctx, actor, tenpo, ephemeral=False)
+        return await cmd_set_sleep(ctx, actor, tenpo, ephemeral=True)
 
     @guild_rules.command(name="sin", description="o toki pona taso e seme?")
     @commands.has_guild_permissions(manage_channels=True)
@@ -253,7 +257,7 @@ class CogRules(Cog):
         await DB.set_timezone(ma.id, nasin_tenpo_ma)
         await DB.set_length(ma.id, suli_tenpo)
 
-        await ctx.respond(resp)
+        await ctx.respond(resp, ephemeral=True)
 
     @guild_rules.command(
         name="suli_tenpo",
@@ -281,7 +285,7 @@ class CogRules(Cog):
         await DB.set_length(ma.id, suli_tenpo)
         resp = f"tenpo kama pi toki pona taso li suli ni: {suli_tenpo}"
 
-        await ctx.respond(resp)
+        await ctx.respond(resp, ephemeral=True)
 
     @guild_rules.command(
         name="nasin_tenpo_ma",
@@ -556,9 +560,9 @@ async def cmd_list_rules(ctx: ApplicationContext, actor: DiscordActor, ephemeral
     if not is_guild:
         response = await DB.get_response(actor.id)
 
-        if response == "sitelen":
+        if response.startswith("sitelen"):
             reacts = await DB.get_reacts(actor.id)
-            reacts_info = format_reacts_rules(reacts)
+            reacts_info = format_response(response, reacts)
             blurbs.append(reacts_info)
         else:
             blurbs.append(f"sina toki pona ala la mi {response} e toki sina")

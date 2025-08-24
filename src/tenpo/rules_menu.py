@@ -112,17 +112,16 @@ class EnterRule(BaseView):
                 action=Pali.PANA,
             )
 
-            if choice == "ale":
+            if choice == "ale":  # straight to confirm
                 await confirm_helper(self.actor, rule, False, interaction)
                 return
 
-            elif choice == "ma":
+            elif choice == "ma":  # guilds go straight to confirm
                 if isinstance(self.actor, Guild):
                     rule.update(label=self.actor.name)
                     await confirm_helper(self.actor, rule, False, interaction)
                     return
 
-                # user makes rule for guild
                 await interaction.response.edit_message(
                     content=f"sina wile lawa e {choice} seme?",
                     view=SelectGuild(self.actor),
