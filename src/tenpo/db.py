@@ -439,14 +439,16 @@ class TenpoDB:
     async def set_calendar(self, eid: int, calendar: Optional[int]):
         return await self.__set_config_item(eid, ConfigKey.CALENDAR, calendar)
 
-    async def get_calendars(self) -> List[int]:
+    async def get_calendars(self) -> dict[int, int]:
         async with self.session() as s:
             stmt = select(Entity.id, Entity.config[ConfigKey.CALENDAR.value]).where(
                 Entity.config[ConfigKey.CALENDAR.value].isnot(None)
             )
             result = await s.execute(stmt)
             entities_with_calendar = result.all()
-        calendars = [calendar for _, calendar in entities_with_calendar if calendar]
+        calendars = {
+            eid: calendar for eid, calendar in entities_with_calendar if calendar
+        }
         # TODO: fix stmt to actually filter at DB side
         return calendars
 

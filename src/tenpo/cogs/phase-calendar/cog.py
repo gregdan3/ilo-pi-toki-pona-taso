@@ -10,16 +10,18 @@ from discord.ext import tasks
 from tenpo.types import MessageableGuildChannel
 from tenpo.__main__ import DB
 from tenpo.log_utils import getLogger
-from tenpo.phase_utils import FACE_MAP, current_emoji, is_major_phase
+from tenpo.phase_utils import FACE_MAP, current_emoji
 
 LOG = getLogger()
 
 
-def get_calendar_title():
+async def get_calendar_title(eid: int) -> str:
     # TODO: nimi li ken ante
     title = "mun tenpo"
     phase_emoji = current_emoji()
-    if is_major_phase():
+    is_event_time = await DB.is_event_time(eid)
+    response = await DB.get_response(eid)
+    if is_event_time and response == "mun":
         phase_emoji = FACE_MAP[phase_emoji]
         title = "o toki pona taso"
     title = f"{phase_emoji} {title}"
@@ -32,22 +34,20 @@ class CogPhaseCalendar(Cog):
         self.bot: Bot = bot
         _ = self.moon_calendar.start()
 
-    async def fetch_channel(self, channel_id: int) -> MessageableGuildChannel | None:
+    async def fetch_channel(
+        self,
+        eid: int,
+        channel_id: int,
+    ) -> MessageableGuildChannel | None:
         assert isinstance(channel_id, int)
         channel = cast(MessageableGuildChannel, self.bot.get_channel(channel_id))
         if channel:
             return channel
 
-        try:
-            channel = cast(
-                MessageableGuildChannel,
-                await self.bot.fetch_channel(channel_id),
-            )
-        except discord.errors.NotFound:
-            LOG.warning("Channel %s may no longer exist", channel_id)
-        except discord.errors.Forbidden:
-            LOG.warning("Channel %s is inaccessible", channel_id)
-
+        channel = cast(
+            MessageableGuildChannel,
+            await self.bot.fetch_channel(channel_id),
+        )
         return channel
 
     async def edit_channel(self, channel: MessageableGuildChannel, title: str) -> bool:
@@ -59,15 +59,13 @@ class CogPhaseCalendar(Cog):
 
     @tasks.loop(minutes=30)
     async def moon_calendar(self):
-        title = get_calendar_title()
-        moon_channels = await DB.get_calendars()
-        LOG.debug(moon_channels)
-
         channel = None
         channel_id = None
-        for channel_id in moon_channels:
+        moon_channels = await DB.get_calendars()
+        for eid, channel_id in moon_channels.items():
             try:
-                channel = await self.fetch_channel(channel_id)
+                title = await get_calendar_title(eid)
+                channel = await self.fetch_channel(eid, channel_id)
                 if not channel:
                     continue
 
@@ -75,8 +73,17 @@ class CogPhaseCalendar(Cog):
                 if result:
                     LOG.info("Updated channel %s to %s", channel_id, channel)
 
-            except discord.errors.HTTPException:
-                pass
+            except discord.errors.NotFound as e:
+                LOG.warning("Channel %s may no longer exist", channel_id)
+                await DB.set_calendar(eid, None)
+            except discord.errors.Forbidden as e:
+                LOG.warning("Channel %s is inaccessible", channel_id)
+                await DB.set_calendar(eid, None)
+            except discord.errors.HTTPException as e:
+                LOG.error("Got HTTPException while editing channel! %s", e)
+                LOG.error("Occurred on channel %s %s", channel_id, channel)
+                LOG.error("... %s", e.__dict__)
+                LOG.error("Swallowing the error in the hopes of the task surviving.")
             except discord.errors.DiscordException as e:
                 LOG.error("Got a DiscordException while editing channel! %s", e)
                 LOG.error("Occurred on channel %s %s", channel_id, channel)
