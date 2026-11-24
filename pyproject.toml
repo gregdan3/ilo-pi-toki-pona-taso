@@ -18,8 +18,8 @@ dependencies = [
     "pytimeparse>=1.1.8",
     "sonatoki>=0.11.1",
 ]
-requires-python = ">=3.11"
-license = { text = "" }
+requires-python = "<3.15,>=3.11"
+license = "AGPL-3.0"
 
 [tool.pytest.ini_options]
 log_cli = true
